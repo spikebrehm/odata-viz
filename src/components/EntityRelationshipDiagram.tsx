@@ -15,7 +15,7 @@ import { ODataMetadataParser } from '../util/parser';
 interface EntityRelationshipDiagramProps {
     parser: ODataMetadataParser;
     onClose: () => void;
-    entityTypeFilter?: string;
+    entityTypeFilter: string;
 }
 
 // Define the NavigationProperty interface
@@ -25,7 +25,7 @@ interface NavigationProperty {
     Partner?: string;
 }
 
-const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ parser, onClose, entityTypeFilter = '' }) => {
+const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ parser, onClose, entityTypeFilter }) => {
     // Generate nodes and edges from the parser data
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = [];
@@ -37,7 +37,7 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
         // Filter entity types based on the regex filter if provided
         if (entityTypeFilter) {
             try {
-                const regex = new RegExp(entityTypeFilter);
+                const regex = new RegExp(entityTypeFilter, 'i');
                 entityTypes = entityTypes.filter(entityType =>
                     regex.test(entityType.Name) ||
                     (entityType.Namespace && regex.test(entityType.Namespace))

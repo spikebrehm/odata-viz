@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { ODataMetadataParser } from '../util/parser';
 import EntityRelationshipDiagram from './EntityRelationshipDiagram';
 
