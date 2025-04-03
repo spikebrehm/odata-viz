@@ -150,8 +150,8 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
     }, [parser, entityTypes]);
 
     // Use React Flow's state hooks
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+    const [nodes, _setNodes, onNodesChange] = useNodesState(initialNodes);
+    const [edges, _setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
     // Custom node component
     const EntityNode = useCallback(({ data }: { data: { label: string; namespace: string } }) => {
