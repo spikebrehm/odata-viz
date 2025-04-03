@@ -161,16 +161,6 @@ const ODataMetadataViewer: React.FC = () => {
     return filteredEntitySets.find(entitySet => entitySet.Name === selectedEntityType);
   }, [filteredEntitySets, selectedEntityType]);
 
-  // Scroll to the selected entity type when it changes
-  useEffect(() => {
-    if (selectedEntityType && contentRef.current) {
-      const element = contentRef.current.querySelector(`[data-entity-type="${selectedEntityType}"]`);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-  }, [selectedEntityType]);
-
   return (
     <div className="flex h-screen overflow-hidden">
       {/* File upload section */}

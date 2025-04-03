@@ -8,7 +8,7 @@ function App() {
           <h1 className="text-2xl font-bold text-gray-900">OData Metadata Visualizer</h1>
         </div>
       </header>
-      <main className="py-6">
+      <main>
         <ODataMetadataViewer />
       </main>
     </div>
