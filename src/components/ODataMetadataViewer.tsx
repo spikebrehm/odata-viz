@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { ODataMetadataParser, ODataMetadata } from '../util/parser';
+import { ODataMetadataParser } from '../util/parser';
 
 const ODataMetadataViewer: React.FC = () => {
   const [parser, setParser] = useState<ODataMetadataParser | null>(null);
@@ -75,18 +75,21 @@ const ODataMetadataViewer: React.FC = () => {
       typeName = typeName.substring(11, typeName.length - 1);
     }
 
+    // Expand the type reference to handle aliases
+    const expandedType = parser.expandTypeReference(typeName);
+
     // Check if it's a fully qualified name (namespace.type)
-    if (typeName.includes('.')) {
-      const lastDot = typeName.lastIndexOf('.');
-      const namespace = typeName.substring(0, lastDot);
-      const name = typeName.substring(lastDot + 1);
+    if (expandedType.includes('.')) {
+      const lastDot = expandedType.lastIndexOf('.');
+      const namespace = expandedType.substring(0, lastDot);
+      const name = expandedType.substring(lastDot + 1);
       const entityTypes = parser.getEntityTypes();
       return entityTypes.some(et => et.Name === name && et.Namespace === namespace);
     }
 
     // Check if it's just a type name (in the same namespace)
     const entityTypes = parser.getEntityTypes();
-    return entityTypes.some(et => et.Name === typeName);
+    return entityTypes.some(et => et.Name === expandedType);
   };
 
   // Get the full entity type ID (namespace + name) for anchor links
@@ -98,19 +101,22 @@ const ODataMetadataViewer: React.FC = () => {
       typeName = typeName.substring(11, typeName.length - 1);
     }
 
+    // Expand the type reference to handle aliases
+    const expandedType = parser.expandTypeReference(typeName);
+
     // If it's already a fully qualified name, return it
-    if (typeName.includes('.')) {
-      return typeName;
+    if (expandedType.includes('.')) {
+      return expandedType;
     }
 
     // Find the entity type to get its namespace
     const entityTypes = parser.getEntityTypes();
-    const entityType = entityTypes.find(et => et.Name === typeName);
+    const entityType = entityTypes.find(et => et.Name === expandedType);
     if (entityType && entityType.Namespace) {
       return `${entityType.Namespace}.${entityType.Name}`;
     }
 
-    return typeName;
+    return expandedType;
   };
 
   const renderEntityType = (entityType: any) => {

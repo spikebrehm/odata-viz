@@ -2,6 +2,7 @@
 <edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
     <edmx:DataServices>
         <Schema Namespace="Microsoft.OData.SampleService.Models.TripPin"
+            Alias="trp"
             xmlns="http://docs.oasis-open.org/odata/ns/edm">
             <EnumType Name="PersonGender">
                 <Member Name="Male" Value="0" />

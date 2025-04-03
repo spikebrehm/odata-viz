@@ -5,7 +5,7 @@ import { ODataMetadataParser, } from './parser';
 const sampleXml = `<?xml version="1.0" encoding="utf-8"?>
 <edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
   <edmx:DataServices>
-    <Schema Namespace="ODataDemo" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+    <Schema Namespace="A.B.C.ODataDemo" Alias="odd" xmlns="http://docs.oasis-open.org/odata/ns/edm">
       <EntityType Name="Product">
         <Property Name="ID" Type="Edm.Int32" Nullable="false" />
         <Property Name="Name" Type="Edm.String" />
@@ -14,18 +14,18 @@ const sampleXml = `<?xml version="1.0" encoding="utf-8"?>
         <Property Name="DiscontinuedDate" Type="Edm.DateTimeOffset" />
         <Property Name="Rating" Type="Edm.Int16" />
         <Property Name="Price" Type="Edm.Decimal" />
-        <NavigationProperty Name="Category" Type="ODataDemo.Category" Partner="Products" />
-        <NavigationProperty Name="Supplier" Type="ODataDemo.Supplier" Partner="Products" />
+        <NavigationProperty Name="Category" Type="odd.Category" Partner="Products" />
+        <NavigationProperty Name="Supplier" Type="odd.Supplier" Partner="Products" />
       </EntityType>
       <EntityType Name="Category">
         <Property Name="ID" Type="Edm.Int32" Nullable="false" />
         <Property Name="Name" Type="Edm.String" />
-        <NavigationProperty Name="Products" Type="Collection(ODataDemo.Product)" Partner="Category" />
+        <NavigationProperty Name="Products" Type="Collection(odd.Product)" Partner="Category" />
       </EntityType>
       <EntityContainer Name="DemoService">
-        <EntitySet Name="Products" EntityType="ODataDemo.Product" />
-        <EntitySet Name="Categories" EntityType="ODataDemo.Category" />
-        <FunctionImport Name="GetProductsByRating" Function="ODataDemo.GetProductsByRating" />
+        <EntitySet Name="Products" EntityType="odd.Product" />
+        <EntitySet Name="Categories" EntityType="odd.Category" />
+        <FunctionImport Name="GetProductsByRating" Function="odd.GetProductsByRating" />
       </EntityContainer>
     </Schema>
   </edmx:DataServices>
@@ -80,7 +80,7 @@ describe('ODataMetadataParser', () => {
             // Check navigation properties
             expect(productType.NavigationProperty).toHaveLength(2);
             expect(productType.NavigationProperty?.[0].Name).toBe('Category');
-            expect(productType.NavigationProperty?.[0].Type).toBe('ODataDemo.Category');
+            expect(productType.NavigationProperty?.[0].Type).toBe('odd.Category');
         });
 
         test('should extract entity sets', () => {
@@ -88,9 +88,9 @@ describe('ODataMetadataParser', () => {
 
             expect(entitySets).toHaveLength(2);
             expect(entitySets[0].Name).toBe('Products');
-            expect(entitySets[0].EntityType).toBe('ODataDemo.Product');
+            expect(entitySets[0].EntityType).toBe('odd.Product');
             expect(entitySets[1].Name).toBe('Categories');
-            expect(entitySets[1].EntityType).toBe('ODataDemo.Category');
+            expect(entitySets[1].EntityType).toBe('odd.Category');
         });
 
         test('should capture namespace for entity types', () => {
@@ -98,7 +98,7 @@ describe('ODataMetadataParser', () => {
 
             // Check that each entity type has the correct namespace
             entityTypes.forEach(entityType => {
-                expect(entityType.Namespace).toBe('ODataDemo');
+                expect(entityType.Namespace).toBe('A.B.C.ODataDemo');
             });
         });
     });
