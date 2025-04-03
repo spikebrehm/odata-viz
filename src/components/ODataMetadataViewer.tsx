@@ -59,7 +59,7 @@ const ODataMetadataViewer: React.FC = () => {
     if (!entityTypeFilter) return entityTypes;
 
     try {
-      const regex = new RegExp(entityTypeFilter);
+      const regex = new RegExp(entityTypeFilter, 'i');
       return entityTypes.filter(entityType =>
         regex.test(entityType.Name) ||
         (entityType.Namespace && regex.test(entityType.Namespace))
@@ -74,7 +74,7 @@ const ODataMetadataViewer: React.FC = () => {
     if (!entityTypeFilter) return entitySets;
 
     try {
-      const regex = new RegExp(entityTypeFilter);
+      const regex = new RegExp(entityTypeFilter, 'i');
       return entitySets.filter(entitySet =>
         regex.test(entitySet.Name) ||
         (entitySet.EntityType && regex.test(entitySet.EntityType))
