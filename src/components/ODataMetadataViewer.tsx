@@ -43,7 +43,6 @@ const ODataMetadataViewer: React.FC = () => {
 
     const element = document.getElementById(entityTypeId);
     if (element) {
-      const sidebarWidth = 256; // 16rem = 256px
       const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
       const offsetPosition = elementPosition - 20; // Add some padding at the top
 
