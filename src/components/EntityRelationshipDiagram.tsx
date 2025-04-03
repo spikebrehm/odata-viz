@@ -9,72 +9,100 @@ import ReactFlow, {
     Position,
     Handle,
 } from 'reactflow';
+import dagre from 'dagre';
 import 'reactflow/dist/style.css';
 import { ODataMetadataParser } from '../util/parser';
 
 interface EntityRelationshipDiagramProps {
     parser: ODataMetadataParser;
     onClose: () => void;
-    entityTypeFilter: string;
+    entityTypeFilter?: string;
 }
 
-// Define the NavigationProperty interface
-interface NavigationProperty {
-    Name: string;
-    Type: string;
-    Partner?: string;
-}
+// Dagre graph configuration
+const dagreGraph = new dagre.graphlib.Graph();
+dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ parser, onClose, entityTypeFilter }) => {
-    // Generate nodes and edges from the parser data
+const nodeWidth = 250;
+const nodeHeight = 80;
+
+const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
+    const isHorizontal = direction === 'LR';
+    dagreGraph.setGraph({ rankdir: direction });
+
+    // Clear the graph before adding new nodes
+    dagreGraph.setGraph({});
+
+    // Add nodes to the dagre graph
+    nodes.forEach((node) => {
+        dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+    });
+
+    // Add edges to the dagre graph
+    edges.forEach((edge) => {
+        dagreGraph.setEdge(edge.source, edge.target);
+    });
+
+    // Calculate the layout
+    dagre.layout(dagreGraph);
+
+    // Get the positioned nodes from dagre
+    const layoutedNodes = nodes.map((node) => {
+        const nodeWithPosition = dagreGraph.node(node.id);
+        return {
+            ...node,
+            position: {
+                x: nodeWithPosition.x - nodeWidth / 2,
+                y: nodeWithPosition.y - nodeHeight / 2,
+            },
+            targetPosition: isHorizontal ? Position.Left : Position.Top,
+            sourcePosition: isHorizontal ? Position.Right : Position.Bottom,
+        };
+    });
+
+    return { nodes: layoutedNodes, edges };
+};
+
+const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ parser, onClose, entityTypeFilter = '' }) => {
+    // Get entity types filtered by the filter if provided
+    const entityTypes = useMemo(() => {
+        const types = parser.getEntityTypes();
+        if (!entityTypeFilter) return types;
+
+        try {
+            const regex = new RegExp(entityTypeFilter, 'i');
+            return types.filter(entityType =>
+                regex.test(entityType.Name) ||
+                (entityType.Namespace && regex.test(entityType.Namespace))
+            );
+        } catch (error) {
+            return types;
+        }
+    }, [parser, entityTypeFilter]);
+
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = [];
         const edges: Edge[] = [];
 
-        // Get all entity types
-        let entityTypes = parser.getEntityTypes();
-
-        // Filter entity types based on the regex filter if provided
-        if (entityTypeFilter) {
-            try {
-                const regex = new RegExp(entityTypeFilter, 'i');
-                entityTypes = entityTypes.filter(entityType =>
-                    regex.test(entityType.Name) ||
-                    (entityType.Namespace && regex.test(entityType.Namespace))
-                );
-            } catch (error) {
-                // If regex is invalid, use all entity types
-                console.error('Invalid regex filter:', error);
-            }
-        }
-
         // Create nodes for each entity type
-        entityTypes.forEach((entityType, index) => {
+        entityTypes.forEach((entityType) => {
             const nodeId = entityType.Namespace
                 ? `${entityType.Namespace}.${entityType.Name}`
                 : entityType.Name;
 
-            // Position nodes in a grid layout
-            const row = Math.floor(index / 3);
-            const col = index % 3;
-            const x = col * 300 + 100;
-            const y = row * 200 + 100;
-
             nodes.push({
                 id: nodeId,
-                position: { x, y },
+                position: { x: 0, y: 0 }, // Initial position will be calculated by dagre
                 data: {
                     label: entityType.Name,
                     namespace: entityType.Namespace || 'No namespace'
                 },
-                sourcePosition: Position.Right,
-                targetPosition: Position.Left,
                 style: {
                     background: '#f8f9fa',
                     border: '1px solid #dee2e6',
                     borderRadius: '8px',
                     padding: '10px',
-                    width: 250,
+                    width: nodeWidth,
                 },
                 type: 'entityNode',
             });
@@ -83,8 +111,7 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
         // Create edges for navigation properties
         entityTypes.forEach(entityType => {
             if (entityType.NavigationProperty) {
-                entityType.NavigationProperty.forEach((navProp: NavigationProperty) => {
-                    // Get the target entity type
+                entityType.NavigationProperty.forEach((navProp: any) => {
                     let targetType = navProp.Type;
 
                     // Handle collection types
@@ -97,18 +124,15 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
 
                     // Find the target node
                     const targetNode = nodes.find(node => node.id === expandedType);
+                    const sourceId = entityType.Namespace
+                        ? `${entityType.Namespace}.${entityType.Name}`
+                        : entityType.Name;
 
                     if (targetNode) {
-                        const sourceId = entityType.Namespace
-                            ? `${entityType.Namespace}.${entityType.Name}`
-                            : entityType.Name;
-
                         edges.push({
                             id: `${sourceId}-${targetNode.id}-${navProp.Name}`,
                             source: sourceId,
                             target: targetNode.id,
-                            sourceHandle: 'right',
-                            targetHandle: 'left',
                             label: navProp.Name,
                             type: 'smoothstep',
                             animated: true,
@@ -120,8 +144,10 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
             }
         });
 
-        return { initialNodes: nodes, initialEdges: edges };
-    }, [parser, entityTypeFilter]);
+        // Apply the layout
+        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges, 'LR');
+        return { initialNodes: layoutedNodes, initialEdges: layoutedEdges };
+    }, [parser, entityTypes]);
 
     // Use React Flow's state hooks
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
