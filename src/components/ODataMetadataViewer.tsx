@@ -1,11 +1,13 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { ODataMetadataParser } from '../util/parser';
+import EntityRelationshipDiagram from './EntityRelationshipDiagram';
 
 const ODataMetadataViewer: React.FC = () => {
   const [parser, setParser] = useState<ODataMetadataParser | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeEntityType, setActiveEntityType] = useState<string | null>(null);
   const [filterText, setFilterText] = useState<string>('');
+  const [showDiagram, setShowDiagram] = useState<boolean>(false);
   const entityTypeRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,6 +45,7 @@ const ODataMetadataViewer: React.FC = () => {
 
     const element = document.getElementById(entityTypeId);
     if (element) {
+      const sidebarWidth = 256; // 16rem = 256px
       const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
       const offsetPosition = elementPosition - 20; // Add some padding at the top
 
@@ -236,7 +239,22 @@ const ODataMetadataViewer: React.FC = () => {
 
       {/* Main content */}
       <div className="flex-1 p-5">
-        <h2 className="text-2xl font-bold mb-4">OData Metadata Viewer</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">OData Metadata Viewer</h2>
+          {parser && (
+            <button
+              onClick={() => setShowDiagram(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
+                <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
+              </svg>
+              View Entity Diagram
+            </button>
+          )}
+        </div>
+
         <div className="my-5 p-5 border-2 border-dashed border-gray-300 rounded-md text-center">
           <input
             type="file"
@@ -268,6 +286,14 @@ const ODataMetadataViewer: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Entity Relationship Diagram Modal */}
+      {showDiagram && parser && (
+        <EntityRelationshipDiagram
+          parser={parser}
+          onClose={() => setShowDiagram(false)}
+        />
+      )}
     </div>
   );
 };
