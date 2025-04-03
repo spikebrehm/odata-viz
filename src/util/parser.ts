@@ -4,8 +4,10 @@ export interface ODataMetadata {
     'edmx:Edmx': {
         'edmx:DataServices': {
             Schema: {
+                Namespace?: string;
                 EntityType?: Array<{
                     Name: string;
+                    Namespace?: string;
                     Property?: Array<{
                         Name: string;
                         Type: string;
@@ -26,7 +28,32 @@ export interface ODataMetadata {
                         Function: string;
                     }>;
                 };
-            };
+            } | Array<{
+                Namespace?: string;
+                EntityType?: Array<{
+                    Name: string;
+                    Namespace?: string;
+                    Property?: Array<{
+                        Name: string;
+                        Type: string;
+                    }>;
+                    NavigationProperty?: Array<{
+                        Name: string;
+                        Type: string;
+                        Partner?: string;
+                    }>;
+                }>;
+                EntityContainer?: {
+                    EntitySet?: Array<{
+                        Name: string;
+                        EntityType: string;
+                    }>;
+                    FunctionImport?: Array<{
+                        Name: string;
+                        Function: string;
+                    }>;
+                };
+            }>;
         };
     };
 }
@@ -39,6 +66,10 @@ export class ODataMetadataParser {
             ignoreAttributes: false,
             attributeNamePrefix: '',
             isArray: (name, jpath) => {
+                // Convert Schema to array if it's a direct child of edmx:DataServices
+                if (jpath === 'edmx:Edmx.edmx:DataServices') {
+                    return ['Schema'].includes(name);
+                }
                 // Only convert to array if it's a direct child of Schema or EntityContainer
                 if (jpath === 'edmx:Edmx.edmx:DataServices.Schema') {
                     return ['EntityType'].includes(name);
@@ -77,6 +108,20 @@ export class ODataMetadataParser {
             throw new Error('Invalid OData metadata: Missing required elements (edmx:Edmx, edmx:DataServices, or Schema)');
         }
 
+        // Add namespace to each entity type
+        const dataServices = parsed['edmx:Edmx']['edmx:DataServices'];
+        const schemas = Array.isArray(dataServices.Schema) ? dataServices.Schema : [dataServices.Schema];
+
+        schemas.forEach((schema: any) => {
+            if (schema.Namespace && schema.EntityType) {
+                // Ensure EntityType is an array
+                const entityTypes = Array.isArray(schema.EntityType) ? schema.EntityType : [schema.EntityType];
+                entityTypes.forEach((entityType: any) => {
+                    entityType.Namespace = schema.Namespace;
+                });
+            }
+        });
+
         return parsed as ODataMetadata;
     }
 
@@ -86,8 +131,18 @@ export class ODataMetadataParser {
      * @returns Array of entity types with their properties
      */
     getEntityTypes(metadata: ODataMetadata) {
-        const schema = metadata['edmx:Edmx']['edmx:DataServices'].Schema;
-        return schema.EntityType || [];
+        const dataServices = metadata['edmx:Edmx']['edmx:DataServices'];
+        const schemas = Array.isArray(dataServices.Schema) ? dataServices.Schema : [dataServices.Schema];
+
+        // Flatten all entity types from all schemas
+        return schemas.reduce((entityTypes: any[], schema: any) => {
+            if (schema.EntityType) {
+                // Ensure EntityType is an array
+                const schemaEntityTypes = Array.isArray(schema.EntityType) ? schema.EntityType : [schema.EntityType];
+                return [...entityTypes, ...schemaEntityTypes];
+            }
+            return entityTypes;
+        }, []);
     }
 
     /**
@@ -96,7 +151,15 @@ export class ODataMetadataParser {
      * @returns Array of entity sets
      */
     getEntitySets(metadata: ODataMetadata) {
-        const schema = metadata['edmx:Edmx']['edmx:DataServices'].Schema;
-        return schema.EntityContainer?.EntitySet || [];
+        const dataServices = metadata['edmx:Edmx']['edmx:DataServices'];
+        const schemas = Array.isArray(dataServices.Schema) ? dataServices.Schema : [dataServices.Schema];
+
+        // Find the schema with EntityContainer
+        const containerSchema = schemas.find((schema: any) => schema.EntityContainer);
+        if (!containerSchema || !containerSchema.EntityContainer) {
+            return [];
+        }
+
+        return containerSchema.EntityContainer.EntitySet || [];
     }
 }

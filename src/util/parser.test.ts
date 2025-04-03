@@ -31,6 +31,25 @@ const sampleXml = `<?xml version="1.0" encoding="utf-8"?>
   </edmx:DataServices>
 </edmx:Edmx>`;
 
+// Sample OData metadata XML with multiple schemas
+const multiSchemaXml = `<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
+  <edmx:DataServices>
+    <Schema Namespace="Microsoft.OData.SampleService.Models.TripPin" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+      <EntityType Name="Photo">
+        <Property Name="Id" Type="Edm.Int32" Nullable="false" />
+        <Property Name="Name" Type="Edm.String" />
+      </EntityType>
+    </Schema>
+    <Schema Namespace="ODataDemo" xmlns="http://docs.oasis-open.org/odata/ns/edm">
+      <EntityType Name="Product">
+        <Property Name="ID" Type="Edm.Int32" Nullable="false" />
+        <Property Name="Name" Type="Edm.String" />
+      </EntityType>
+    </Schema>
+  </edmx:DataServices>
+</edmx:Edmx>`;
+
 describe('ODataMetadataParser', () => {
     let parser: ODataMetadataParser;
 
@@ -74,6 +93,31 @@ describe('ODataMetadataParser', () => {
         expect(entitySets[0].EntityType).toBe('ODataDemo.Product');
         expect(entitySets[1].Name).toBe('Categories');
         expect(entitySets[1].EntityType).toBe('ODataDemo.Category');
+    });
+
+    test('should capture namespace for entity types', () => {
+        const metadata = parser.parseMetadata(sampleXml);
+        const entityTypes = parser.getEntityTypes(metadata);
+
+        // Check that each entity type has the correct namespace
+        entityTypes.forEach(entityType => {
+            expect(entityType.Namespace).toBe('ODataDemo');
+        });
+    });
+
+    test('should handle multiple schemas with different namespaces', () => {
+        const metadata = parser.parseMetadata(multiSchemaXml);
+        const entityTypes = parser.getEntityTypes(metadata);
+
+        // Check that entity types have the correct namespaces
+        const photoType = entityTypes.find(et => et.Name === 'Photo');
+        const productType = entityTypes.find(et => et.Name === 'Product');
+
+        expect(photoType).toBeDefined();
+        expect(photoType?.Namespace).toBe('Microsoft.OData.SampleService.Models.TripPin');
+
+        expect(productType).toBeDefined();
+        expect(productType?.Namespace).toBe('ODataDemo');
     });
 
     test('should handle invalid XML', () => {

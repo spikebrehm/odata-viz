@@ -68,6 +68,11 @@ const ODataMetadataViewer: React.FC = () => {
       className="bg-gray-100 rounded-md p-4 mb-5 scroll-mt-20"
     >
       <h3 className="text-blue-600 text-xl font-semibold mt-0">{entityType.Name}</h3>
+      {entityType.Namespace && (
+        <div className="text-sm text-gray-500 mb-2">
+          Namespace: <span className="font-mono">{entityType.Namespace}</span>
+        </div>
+      )}
       {entityType.Property && (
         <div className="mt-4">
           <h4 className="text-gray-600 font-medium mb-2">Properties</h4>
