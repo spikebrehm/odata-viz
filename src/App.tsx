@@ -1,4 +1,3 @@
-import React from 'react';
 import ODataMetadataViewer from './components/ODataMetadataViewer';
 
 function App() {

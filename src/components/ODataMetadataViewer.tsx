@@ -1,15 +1,20 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ODataMetadataParser } from '../util/parser';
 import EntityRelationshipDiagram from './EntityRelationshipDiagram';
 
 const ODataMetadataViewer: React.FC = () => {
   const [parser, setParser] = useState<ODataMetadataParser | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeEntityType, setActiveEntityType] = useState<string | null>(null);
-  const [filterText, setFilterText] = useState<string>('');
-  const [showDiagram, setShowDiagram] = useState<boolean>(false);
-  const entityTypeRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [selectedEntityType, setSelectedEntityType] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDiagram, setShowDiagram] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [entityTypeFilter, setEntityTypeFilter] = useState('');
+  const [filterError, setFilterError] = useState<string | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
+  // Handle file upload
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -19,9 +24,11 @@ const ODataMetadataViewer: React.FC = () => {
         const xmlContent = e.target?.result as string;
         try {
           setParser(new ODataMetadataParser(xmlContent));
-          // Reset active entity type and filter when new file is loaded
-          setActiveEntityType(null);
-          setFilterText('');
+          // Reset state when new file is loaded
+          setSelectedEntityType(null);
+          setSearchTerm('');
+          setEntityTypeFilter('');
+          setFilterError(null);
         } catch (error) {
           setError(error instanceof Error ? error.message : 'Unknown error occurred');
           setParser(null);
@@ -35,264 +42,350 @@ const ODataMetadataViewer: React.FC = () => {
     }
   };
 
-  const setEntityTypeRef = (entityTypeName: string, element: HTMLDivElement | null) => {
-    entityTypeRefs.current[entityTypeName] = element;
-  };
-
-  // Function to scroll to an entity type
-  const scrollToEntityType = (entityTypeId: string) => {
-    setActiveEntityType(entityTypeId);
-
-    const element = document.getElementById(entityTypeId);
-    if (element) {
-      const sidebarWidth = 256; // 16rem = 256px
-      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-      const offsetPosition = elementPosition - 20; // Add some padding at the top
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
-  };
-
-  // Filter entity types based on the filter text
-  const filteredEntityTypes = useMemo(() => {
+  // Memoize the entity types to avoid recalculating on every render
+  const entityTypes = useMemo(() => {
     if (!parser) return [];
+    return parser.getEntityTypes()
+  }, [parser]);
 
-    const allEntityTypes = parser.getEntityTypes();
-    if (!filterText.trim()) return allEntityTypes;
+  // Memoize the entity sets to avoid recalculating on every render
+  const entitySets = useMemo(() => {
+    if (!parser) return [];
+    return parser.getEntitySets()
+  }, [parser]);
 
-    const searchTerm = filterText.toLowerCase();
-    return allEntityTypes.filter(entityType =>
-      entityType.Name.toLowerCase().includes(searchTerm)
+  // Filter entity types based on the regex filter
+  const filteredEntityTypes = useMemo(() => {
+    if (!entityTypeFilter) return entityTypes;
+
+    try {
+      const regex = new RegExp(entityTypeFilter);
+      return entityTypes.filter(entityType =>
+        regex.test(entityType.Name) ||
+        (entityType.Namespace && regex.test(entityType.Namespace))
+      );
+    } catch (error) {
+      return entityTypes;
+    }
+  }, [entityTypes, entityTypeFilter]);
+
+  // Filter entity sets based on the filtered entity types
+  const filteredEntitySets = useMemo(() => {
+    if (!entityTypeFilter) return entitySets;
+
+    try {
+      const regex = new RegExp(entityTypeFilter);
+      return entitySets.filter(entitySet =>
+        regex.test(entitySet.Name) ||
+        (entitySet.EntityType && regex.test(entitySet.EntityType))
+      );
+    } catch (error) {
+      return entitySets;
+    }
+  }, [entitySets, entityTypeFilter]);
+
+  // Validate the regex filter
+  const validateFilter = (filter: string) => {
+    if (!filter) {
+      setFilterError(null);
+      return true;
+    }
+
+    try {
+      new RegExp(filter);
+      setFilterError(null);
+      return true;
+    } catch (error) {
+      setFilterError('Invalid regex pattern');
+      return false;
+    }
+  };
+
+  // Handle filter change
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newFilter = e.target.value;
+    setEntityTypeFilter(newFilter);
+    validateFilter(newFilter);
+  };
+
+  // Filter entity types based on search term
+  const filteredEntityTypesWithSearch = useMemo(() => {
+    return filteredEntityTypes.filter(entityType =>
+      entityType.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (entityType.Namespace && entityType.Namespace.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-  }, [parser, filterText]);
+  }, [filteredEntityTypes, searchTerm]);
 
-  // Check if a type exists in our schema
-  const isTypeInSchema = (typeName: string): boolean => {
-    if (!parser) return false;
-
-    // Handle collection types
-    if (typeName.startsWith('Collection(') && typeName.endsWith(')')) {
-      typeName = typeName.substring(11, typeName.length - 1);
-    }
-
-    // Expand the type reference to handle aliases
-    const expandedType = parser.expandTypeReference(typeName);
-
-    // Check if it's a fully qualified name (namespace.type)
-    if (expandedType.includes('.')) {
-      const lastDot = expandedType.lastIndexOf('.');
-      const namespace = expandedType.substring(0, lastDot);
-      const name = expandedType.substring(lastDot + 1);
-      const entityTypes = parser.getEntityTypes();
-      return entityTypes.some(et => et.Name === name && et.Namespace === namespace);
-    }
-
-    // Check if it's just a type name (in the same namespace)
-    const entityTypes = parser.getEntityTypes();
-    return entityTypes.some(et => et.Name === expandedType);
-  };
-
-  // Get the full entity type ID (namespace + name) for anchor links
-  const getEntityTypeId = (typeName: string): string => {
-    if (!parser) return typeName;
-
-    // Handle collection types
-    if (typeName.startsWith('Collection(') && typeName.endsWith(')')) {
-      typeName = typeName.substring(11, typeName.length - 1);
-    }
-
-    // Expand the type reference to handle aliases
-    const expandedType = parser.expandTypeReference(typeName);
-
-    // If it's already a fully qualified name, return it
-    if (expandedType.includes('.')) {
-      return expandedType;
-    }
-
-    // Find the entity type to get its namespace
-    const entityTypes = parser.getEntityTypes();
-    const entityType = entityTypes.find(et => et.Name === expandedType);
-    if (entityType && entityType.Namespace) {
-      return `${entityType.Namespace}.${entityType.Name}`;
-    }
-
-    return expandedType;
-  };
-
-  const renderEntityType = (entityType: any) => {
-    const entityTypeId = entityType.Namespace ? `${entityType.Namespace}.${entityType.Name}` : entityType.Name;
-
-    return (
-      <div
-        key={entityType.Name}
-        ref={(el) => setEntityTypeRef(entityType.Name, el)}
-        id={entityTypeId}
-        className="bg-gray-100 rounded-md p-4 mb-5 scroll-mt-20"
-      >
-        <h3 className="text-blue-600 text-xl font-semibold mt-0">{entityType.Name}</h3>
-        {entityType.Namespace && (
-          <div className="text-sm text-gray-500 mb-2">
-            Namespace: <span className="font-mono text-[0.9em]">{entityType.Namespace}</span>
-          </div>
-        )}
-        {entityType.Property && (
-          <div className="mt-4">
-            <h4 className="text-gray-600 font-medium mb-2">Properties</h4>
-            <ul className="list-none pl-0">
-              {entityType.Property.map((prop: any) => (
-                <li key={prop.Name} className="py-1 border-b border-gray-200">
-                  {prop.Name}: <span className="font-mono text-[0.9em]">{prop.Type}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {entityType.NavigationProperty && (
-          <div className="mt-4">
-            <h4 className="text-gray-600 font-medium mb-2">Navigation Properties</h4>
-            <ul className="list-none pl-0">
-              {entityType.NavigationProperty.map((nav: any) => (
-                <li key={nav.Name} className="py-1 border-b border-gray-200">
-                  {nav.Name}: {isTypeInSchema(nav.Type) ? (
-                    <button
-                      onClick={() => scrollToEntityType(getEntityTypeId(nav.Type))}
-                      className="font-mono text-[0.9em] text-blue-600 hover:text-blue-800 hover:underline bg-transparent border-0 p-0 cursor-pointer"
-                    >
-                      {nav.Type}
-                    </button>
-                  ) : (
-                    <span className="font-mono text-[0.9em]">{nav.Type}</span>
-                  )}
-                  {nav.Partner && <span className="font-mono text-[0.9em]"> (Partner: {nav.Partner})</span>}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
+  // Filter entity sets based on search term
+  const filteredEntitySetsWithSearch = useMemo(() => {
+    return filteredEntitySets.filter(entitySet =>
+      entitySet.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (entitySet.EntityType && entitySet.EntityType.toLowerCase().includes(searchTerm.toLowerCase()))
     );
+  }, [filteredEntitySets, searchTerm]);
+
+  // Handle entity type selection
+  const handleEntityTypeClick = (entityTypeName: string) => {
+    setSelectedEntityType(entityTypeName);
   };
 
-  const renderEntitySet = (entitySet: any) => (
-    <li key={entitySet.Name} className="py-2 border-b border-gray-200">
-      {entitySet.Name} ({isTypeInSchema(entitySet.EntityType) ? (
-        <button
-          onClick={() => scrollToEntityType(getEntityTypeId(entitySet.EntityType))}
-          className="font-mono text-[0.9em] text-blue-600 hover:text-blue-800 hover:underline bg-transparent border-0 p-0 cursor-pointer"
-        >
-          {entitySet.EntityType}
-        </button>
-      ) : (
-        <span className="font-mono text-[0.9em]">{entitySet.EntityType}</span>
-      )})
-    </li>
-  );
+  // Handle entity set selection
+  const handleEntitySetClick = (entitySetName: string) => {
+    setSelectedEntityType(entitySetName);
+  };
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  // Handle diagram toggle
+  const handleToggleDiagram = () => {
+    setShowDiagram(!showDiagram);
+  };
+
+  // Handle settings toggle
+  const handleToggleSettings = () => {
+    setShowSettings(!showSettings);
+  };
+
+  // Get the selected entity type details
+  const selectedEntityTypeDetails = useMemo(() => {
+    if (!selectedEntityType) return null;
+    return filteredEntityTypes.find(entityType => entityType.Name === selectedEntityType);
+  }, [filteredEntityTypes, selectedEntityType]);
+
+  // Get the selected entity set details
+  const selectedEntitySetDetails = useMemo(() => {
+    if (!selectedEntityType) return null;
+    return filteredEntitySets.find(entitySet => entitySet.Name === selectedEntityType);
+  }, [filteredEntitySets, selectedEntityType]);
+
+  // Scroll to the selected entity type when it changes
+  useEffect(() => {
+    if (selectedEntityType && contentRef.current) {
+      const element = contentRef.current.querySelector(`[data-entity-type="${selectedEntityType}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [selectedEntityType]);
 
   return (
-    <div className="flex">
-      {/* Sidebar */}
-      {parser && (
-        <div className="w-64 sticky top-0 h-screen bg-white shadow-md flex flex-col">
-          {/* Fixed header and filter section */}
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold mb-3 text-gray-800">Entity Types</h3>
-
-            {/* Filter input */}
-            <div className="mb-2">
+    <div className="flex h-screen overflow-hidden">
+      {/* File upload section */}
+      {!parser && (
+        <div className="w-full h-full flex items-center justify-center">
+          <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-md">
+            <h2 className="text-2xl font-bold mb-6 text-center">OData Metadata Viewer</h2>
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">
+                Upload OData Metadata XML
+              </label>
               <input
-                type="text"
-                placeholder="Filter entity types..."
-                value={filterText}
-                onChange={(e) => setFilterText(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                type="file"
+                accept=".xml"
+                onChange={handleFileUpload}
+                className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-          </div>
-
-          {/* Scrollable entity types list */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <ul className="space-y-1">
-              {filteredEntityTypes.map((entityType: any) => {
-                const entityTypeId = entityType.Namespace ? `${entityType.Namespace}.${entityType.Name}` : entityType.Name;
-                return (
-                  <li key={entityType.Name}>
-                    <button
-                      onClick={() => scrollToEntityType(entityTypeId)}
-                      className={`w-full text-left px-2 py-1 rounded hover:bg-blue-50 block ${activeEntityType === entityTypeId ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-700'
-                        }`}
-                    >
-                      {entityType.Name}
-                    </button>
-                  </li>
-                );
-              })}
-              {filteredEntityTypes.length === 0 && (
-                <li className="text-gray-500 italic py-2">No entity types match your filter</li>
-              )}
-            </ul>
+            {error && (
+              <div className="text-red-500 text-sm mt-2">
+                {error}
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Main content */}
-      <div className="flex-1 p-5">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">OData Metadata Viewer</h2>
-          {parser && (
-            <button
-              onClick={() => setShowDiagram(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
-                <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
-              </svg>
-              View Entity Diagram
-            </button>
-          )}
-        </div>
+      {/* Main viewer (only shown when parser is loaded) */}
+      {parser && (
+        <>
+          {/* Sidebar */}
+          <div ref={sidebarRef} className="w-64 bg-gray-100 p-4 overflow-y-auto border-r border-gray-200">
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-lg font-semibold">Entity Types</h2>
 
-        <div className="my-5 p-5 border-2 border-dashed border-gray-300 rounded-md text-center">
-          <input
-            type="file"
-            accept=".xml"
-            onChange={handleFileUpload}
-            className="p-2 border border-gray-300 rounded-md w-full max-w-md"
-          />
-        </div>
+                <button
+                  className="text-gray-500 hover:text-gray-700"
+                  onClick={handleToggleDiagram}
+                  title="View Entity Relationship Diagram"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                  </svg>
+                </button>
 
-        {error && (
-          <div className="text-red-600 bg-red-50 p-3 rounded-md my-3">
-            {error}
-          </div>
-        )}
-
-        {parser && (
-          <div className="mt-5">
-            <div className="mb-8">
-              <h3 className="text-xl font-semibold mb-3">Entity Types</h3>
-              {parser.getEntityTypes().map(renderEntityType)}
+                <button
+                  onClick={handleToggleSettings}
+                  className="text-gray-500 hover:text-gray-700"
+                  title="Settings"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
+              <input
+                type="text"
+                placeholder="Search..."
+                className="w-full p-2 border border-gray-300 rounded mb-2"
+                value={searchTerm}
+                onChange={handleSearchChange}
+              />
+              {showSettings && (
+                <div className="mb-2">
+                  <input
+                    type="text"
+                    placeholder="Filter entity types (regex)"
+                    className={`w-full p-2 border ${filterError ? 'border-red-500' : 'border-gray-300'} rounded`}
+                    value={entityTypeFilter}
+                    onChange={handleFilterChange}
+                  />
+                  {filterError && (
+                    <div className="text-red-500 text-xs mt-1">{filterError}</div>
+                  )}
+                </div>
+              )}
+              <ul className="space-y-1">
+                {filteredEntityTypesWithSearch.map(entityType => (
+                  <li key={entityType.Name}>
+                    <button
+                      className={`w-full text-left p-2 rounded ${selectedEntityType === entityType.Name
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'hover:bg-gray-200'
+                        }`}
+                      onClick={() => handleEntityTypeClick(entityType.Name)}
+                    >
+                      {entityType.Name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            <div className="mt-8">
-              <h3 className="text-xl font-semibold mb-3">Entity Sets</h3>
-              <ul className="list-none pl-0">
-                {parser.getEntitySets().map(renderEntitySet)}
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold mb-2">Entity Sets</h2>
+              <ul className="space-y-1">
+                {filteredEntitySetsWithSearch.map(entitySet => (
+                  <li key={entitySet.Name}>
+                    <button
+                      className={`w-full text-left p-2 rounded ${selectedEntityType === entitySet.Name
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'hover:bg-gray-200'
+                        }`}
+                      onClick={() => handleEntitySetClick(entitySet.Name)}
+                    >
+                      {entitySet.Name}
+                    </button>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Entity Relationship Diagram Modal */}
-      {showDiagram && parser && (
-        <EntityRelationshipDiagram
-          parser={parser}
-          onClose={() => setShowDiagram(false)}
-        />
+          {/* Main content */}
+          <div ref={contentRef} className="flex-1 overflow-y-auto p-4">
+            {selectedEntityTypeDetails ? (
+              <div data-entity-type={selectedEntityTypeDetails.Name}>
+                <h2 className="text-2xl font-bold mb-4">{selectedEntityTypeDetails.Name}</h2>
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold mb-2">Namespace</h3>
+                  <p>{selectedEntityTypeDetails.Namespace || 'No namespace'}</p>
+                </div>
+                {selectedEntityTypeDetails.Property && (
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold mb-2">Properties</h3>
+                    <table className="min-w-full bg-white border border-gray-200">
+                      <thead>
+                        <tr>
+                          <th className="py-2 px-4 border-b text-left">Name</th>
+                          <th className="py-2 px-4 border-b text-left">Type</th>
+                          <th className="py-2 px-4 border-b text-left">Nullable</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedEntityTypeDetails.Property.map((property) => (
+                          <tr key={property.Name}>
+                            <td className="py-2 px-4 border-b">{property.Name}</td>
+                            <td className="py-2 px-4 border-b">{property.Type}</td>
+                            <td className="py-2 px-4 border-b">{property.Nullable ? 'Yes' : 'No'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {selectedEntityTypeDetails.NavigationProperty && (
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold mb-2">Navigation Properties</h3>
+                    <table className="min-w-full bg-white border border-gray-200">
+                      <thead>
+                        <tr>
+                          <th className="py-2 px-4 border-b text-left">Name</th>
+                          <th className="py-2 px-4 border-b text-left">Type</th>
+                          <th className="py-2 px-4 border-b text-left">Partner</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedEntityTypeDetails.NavigationProperty.map((navProp) => (
+                          <tr key={navProp.Name}>
+                            <td className="py-2 px-4 border-b">{navProp.Name}</td>
+                            <td className="py-2 px-4 border-b">{navProp.Type}</td>
+                            <td className="py-2 px-4 border-b">{navProp.Partner || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ) : selectedEntitySetDetails ? (
+              <div data-entity-type={selectedEntitySetDetails.Name}>
+                <h2 className="text-2xl font-bold mb-4">{selectedEntitySetDetails.Name}</h2>
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold mb-2">Entity Type</h3>
+                  <p>{selectedEntitySetDetails.EntityType}</p>
+                </div>
+                {selectedEntitySetDetails.NavigationPropertyBinding && (
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold mb-2">Navigation Property Bindings</h3>
+                    <table className="min-w-full bg-white border border-gray-200">
+                      <thead>
+                        <tr>
+                          <th className="py-2 px-4 border-b text-left">Path</th>
+                          <th className="py-2 px-4 border-b text-left">Target</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedEntitySetDetails.NavigationPropertyBinding.map((binding) => (
+                          <tr key={binding.Path}>
+                            <td className="py-2 px-4 border-b">{binding.Path}</td>
+                            <td className="py-2 px-4 border-b">{binding.Target}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 mt-10">
+                <p>Select an entity type or entity set to view its details</p>
+              </div>
+            )}
+          </div>
+
+          {/* Entity Relationship Diagram Modal */}
+          {showDiagram && (
+            <EntityRelationshipDiagram
+              parser={parser}
+              onClose={handleToggleDiagram}
+              entityTypeFilter={entityTypeFilter}
+            />
+          )}
+        </>
       )}
     </div>
   );

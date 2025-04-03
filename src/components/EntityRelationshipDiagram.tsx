@@ -15,6 +15,7 @@ import { ODataMetadataParser } from '../util/parser';
 interface EntityRelationshipDiagramProps {
     parser: ODataMetadataParser;
     onClose: () => void;
+    entityTypeFilter?: string;
 }
 
 // Define the NavigationProperty interface
@@ -24,14 +25,28 @@ interface NavigationProperty {
     Partner?: string;
 }
 
-const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ parser, onClose }) => {
+const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ parser, onClose, entityTypeFilter = '' }) => {
     // Generate nodes and edges from the parser data
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes: Node[] = [];
         const edges: Edge[] = [];
 
         // Get all entity types
-        const entityTypes = parser.getEntityTypes();
+        let entityTypes = parser.getEntityTypes();
+
+        // Filter entity types based on the regex filter if provided
+        if (entityTypeFilter) {
+            try {
+                const regex = new RegExp(entityTypeFilter);
+                entityTypes = entityTypes.filter(entityType =>
+                    regex.test(entityType.Name) ||
+                    (entityType.Namespace && regex.test(entityType.Namespace))
+                );
+            } catch (error) {
+                // If regex is invalid, use all entity types
+                console.error('Invalid regex filter:', error);
+            }
+        }
 
         // Create nodes for each entity type
         entityTypes.forEach((entityType, index) => {
@@ -106,7 +121,7 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
         });
 
         return { initialNodes: nodes, initialEdges: edges };
-    }, [parser]);
+    }, [parser, entityTypeFilter]);
 
     // Use React Flow's state hooks
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
