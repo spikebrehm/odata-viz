@@ -70,7 +70,7 @@ const ODataMetadataViewer: React.FC = () => {
       <h3 className="text-blue-600 text-xl font-semibold mt-0">{entityType.Name}</h3>
       {entityType.Namespace && (
         <div className="text-sm text-gray-500 mb-2">
-          Namespace: <span className="font-mono">{entityType.Namespace}</span>
+          <span className="font-mono">{entityType.Namespace}</span>
         </div>
       )}
       {entityType.Property && (
@@ -79,7 +79,7 @@ const ODataMetadataViewer: React.FC = () => {
           <ul className="list-none pl-0">
             {entityType.Property.map((prop: any) => (
               <li key={prop.Name} className="py-1 border-b border-gray-200">
-                {prop.Name}: <span className="font-mono">{prop.Type}</span>
+                {prop.Name}: <span className="font-mono text-[0.8em]">{prop.Type}</span>
               </li>
             ))}
           </ul>
@@ -91,8 +91,8 @@ const ODataMetadataViewer: React.FC = () => {
           <ul className="list-none pl-0">
             {entityType.NavigationProperty.map((nav: any) => (
               <li key={nav.Name} className="py-1 border-b border-gray-200">
-                {nav.Name}: <span className="font-mono">{nav.Type}</span>
-                {nav.Partner && ` (Partner: ${nav.Partner})`}
+                {nav.Name}: <span className="font-mono text-[0.8em]">{nav.Type}</span>
+                {nav.Partner && <span className="font-mono text-[0.8em]"> (Partner: {nav.Partner})</span>}
               </li>
             ))}
           </ul>
