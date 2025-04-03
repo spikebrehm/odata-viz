@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach } from '@jest/globals';
-import { ODataMetadataParser, ODataMetadata } from './parser';
+import { ODataMetadataParser, } from './parser';
 
 // Sample OData metadata XML string
 const sampleXml = `<?xml version="1.0" encoding="utf-8"?>
@@ -51,88 +51,93 @@ const multiSchemaXml = `<?xml version="1.0" encoding="utf-8"?>
 </edmx:Edmx>`;
 
 describe('ODataMetadataParser', () => {
-    let parser: ODataMetadataParser;
+    describe('simpleXml', () => {
+        let parser: ODataMetadataParser;
 
-    beforeEach(() => {
-        parser = new ODataMetadataParser();
-    });
+        beforeEach(() => {
+            parser = new ODataMetadataParser(sampleXml);
+        });
 
-    test('should parse OData metadata XML', () => {
-        const metadata = parser.parseMetadata(sampleXml);
-        expect(metadata).toBeDefined();
-        expect(metadata['edmx:Edmx']).toBeDefined();
-        expect(metadata['edmx:Edmx']['edmx:DataServices']).toBeDefined();
-    });
+        test('should parse OData metadata XML', () => {
+            expect(parser.metadata).toBeDefined();
+            expect(parser.metadata['edmx:Edmx']).toBeDefined();
+            expect(parser.metadata['edmx:Edmx']['edmx:DataServices']).toBeDefined();
+        });
 
-    test('should extract entity types', () => {
-        const metadata = parser.parseMetadata(sampleXml);
-        const entityTypes = parser.getEntityTypes(metadata);
+        test('should extract entity types', () => {
+            const entityTypes = parser.getEntityTypes();
 
-        expect(entityTypes).toHaveLength(2);
-        expect(entityTypes[0].Name).toBe('Product');
-        expect(entityTypes[1].Name).toBe('Category');
+            expect(entityTypes).toHaveLength(2);
+            expect(entityTypes[0].Name).toBe('Product');
+            expect(entityTypes[1].Name).toBe('Category');
 
-        // Check Product entity type properties
-        const productType = entityTypes[0];
-        expect(productType.Property).toHaveLength(7);
-        expect(productType.Property?.[0].Name).toBe('ID');
-        expect(productType.Property?.[0].Type).toBe('Edm.Int32');
+            // Check Product entity type properties
+            const productType = entityTypes[0];
+            expect(productType.Property).toHaveLength(7);
+            expect(productType.Property?.[0].Name).toBe('ID');
+            expect(productType.Property?.[0].Type).toBe('Edm.Int32');
 
-        // Check navigation properties
-        expect(productType.NavigationProperty).toHaveLength(2);
-        expect(productType.NavigationProperty?.[0].Name).toBe('Category');
-        expect(productType.NavigationProperty?.[0].Type).toBe('ODataDemo.Category');
-    });
+            // Check navigation properties
+            expect(productType.NavigationProperty).toHaveLength(2);
+            expect(productType.NavigationProperty?.[0].Name).toBe('Category');
+            expect(productType.NavigationProperty?.[0].Type).toBe('ODataDemo.Category');
+        });
 
-    test('should extract entity sets', () => {
-        const metadata = parser.parseMetadata(sampleXml);
-        const entitySets = parser.getEntitySets(metadata);
+        test('should extract entity sets', () => {
+            const entitySets = parser.getEntitySets();
 
-        expect(entitySets).toHaveLength(2);
-        expect(entitySets[0].Name).toBe('Products');
-        expect(entitySets[0].EntityType).toBe('ODataDemo.Product');
-        expect(entitySets[1].Name).toBe('Categories');
-        expect(entitySets[1].EntityType).toBe('ODataDemo.Category');
-    });
+            expect(entitySets).toHaveLength(2);
+            expect(entitySets[0].Name).toBe('Products');
+            expect(entitySets[0].EntityType).toBe('ODataDemo.Product');
+            expect(entitySets[1].Name).toBe('Categories');
+            expect(entitySets[1].EntityType).toBe('ODataDemo.Category');
+        });
 
-    test('should capture namespace for entity types', () => {
-        const metadata = parser.parseMetadata(sampleXml);
-        const entityTypes = parser.getEntityTypes(metadata);
+        test('should capture namespace for entity types', () => {
+            const entityTypes = parser.getEntityTypes()
 
-        // Check that each entity type has the correct namespace
-        entityTypes.forEach(entityType => {
-            expect(entityType.Namespace).toBe('ODataDemo');
+            // Check that each entity type has the correct namespace
+            entityTypes.forEach(entityType => {
+                expect(entityType.Namespace).toBe('ODataDemo');
+            });
         });
     });
 
-    test('should handle multiple schemas with different namespaces', () => {
-        const metadata = parser.parseMetadata(multiSchemaXml);
-        const entityTypes = parser.getEntityTypes(metadata);
+    describe('multiSchemaXml', () => {
+        let parser: ODataMetadataParser;
 
-        // Check that entity types have the correct namespaces
-        const photoType = entityTypes.find(et => et.Name === 'Photo');
-        const productType = entityTypes.find(et => et.Name === 'Product');
+        beforeEach(() => {
+            parser = new ODataMetadataParser(multiSchemaXml);
+        });
 
-        expect(photoType).toBeDefined();
-        expect(photoType?.Namespace).toBe('Microsoft.OData.SampleService.Models.TripPin');
+        test('should handle multiple schemas with different namespaces', () => {
+            const entityTypes = parser.getEntityTypes();
 
-        expect(productType).toBeDefined();
-        expect(productType?.Namespace).toBe('ODataDemo');
+            // Check that entity types have the correct namespaces
+            const photoType = entityTypes.find(et => et.Name === 'Photo');
+            const productType = entityTypes.find(et => et.Name === 'Product');
+
+            expect(photoType).toBeDefined();
+            expect(photoType?.Namespace).toBe('Microsoft.OData.SampleService.Models.TripPin');
+
+            expect(productType).toBeDefined();
+            expect(productType?.Namespace).toBe('ODataDemo');
+        });
     });
 
     test('should handle invalid XML', () => {
         const invalidXml = '<invalid>xml';
-        expect(() => parser.parseMetadata(invalidXml)).toThrow('Invalid OData metadata: Missing required elements (edmx:Edmx, edmx:DataServices, or Schema)');
+        expect(() => new ODataMetadataParser(invalidXml)).toThrow('Invalid OData metadata: Missing required elements (edmx:Edmx, edmx:DataServices, or Schema)');
     });
 
     test('should handle empty input', () => {
-        expect(() => parser.parseMetadata('')).toThrow('Invalid input: XML string is required');
-        expect(() => parser.parseMetadata(null as any)).toThrow('Invalid input: XML string is required');
-        expect(() => parser.parseMetadata(undefined as any)).toThrow('Invalid input: XML string is required');
+        expect(() => new ODataMetadataParser('')).toThrow('Invalid input: XML string is required');
+        expect(() => new ODataMetadataParser(null as any)).toThrow('Invalid input: XML string is required');
+        expect(() => new ODataMetadataParser(undefined as any)).toThrow('Invalid input: XML string is required');
     });
 
     test('should handle XML without required OData elements', () => {
         const invalidODataXml = '<?xml version="1.0"?><root><child>test</child></root>';
-        expect(() => parser.parseMetadata(invalidODataXml)).toThrow('Invalid OData metadata: Missing required elements');
+        expect(() => new ODataMetadataParser(invalidODataXml)).toThrow('Invalid OData metadata: Missing required elements');
     });
 }); 

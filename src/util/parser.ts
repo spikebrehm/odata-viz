@@ -60,8 +60,9 @@ export interface ODataMetadata {
 
 export class ODataMetadataParser {
     private parser: XMLParser;
+    metadata: ODataMetadata
 
-    constructor() {
+    constructor(xmlString: string) {
         this.parser = new XMLParser({
             ignoreAttributes: false,
             attributeNamePrefix: '',
@@ -83,6 +84,7 @@ export class ODataMetadataParser {
                 return false;
             },
         });
+        this.metadata = this.parseMetadata(xmlString);
     }
 
     /**
@@ -127,11 +129,10 @@ export class ODataMetadataParser {
 
     /**
      * Extract entity types from parsed metadata
-     * @param metadata Parsed OData metadata
      * @returns Array of entity types with their properties
      */
-    getEntityTypes(metadata: ODataMetadata) {
-        const dataServices = metadata['edmx:Edmx']['edmx:DataServices'];
+    getEntityTypes() {
+        const dataServices = this.metadata['edmx:Edmx']['edmx:DataServices'];
         const schemas = Array.isArray(dataServices.Schema) ? dataServices.Schema : [dataServices.Schema];
 
         // Flatten all entity types from all schemas
@@ -147,11 +148,10 @@ export class ODataMetadataParser {
 
     /**
      * Extract entity sets from parsed metadata
-     * @param metadata Parsed OData metadata
      * @returns Array of entity sets
      */
-    getEntitySets(metadata: ODataMetadata) {
-        const dataServices = metadata['edmx:Edmx']['edmx:DataServices'];
+    getEntitySets() {
+        const dataServices = this.metadata['edmx:Edmx']['edmx:DataServices'];
         const schemas = Array.isArray(dataServices.Schema) ? dataServices.Schema : [dataServices.Schema];
 
         // Find the schema with EntityContainer
