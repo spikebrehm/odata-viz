@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { ODataMetadataParser, ODataMetadata } from '../util/parser';
 
 const ODataMetadataViewer: React.FC = () => {
@@ -7,24 +7,6 @@ const ODataMetadataViewer: React.FC = () => {
   const [activeEntityType, setActiveEntityType] = useState<string | null>(null);
   const [filterText, setFilterText] = useState<string>('');
   const entityTypeRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
-  // Handle hash changes for direct linking
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash;
-      if (hash && hash.startsWith('#') && parser) {
-        const entityTypeId = hash.substring(1);
-        setActiveEntityType(entityTypeId);
-      }
-    };
-
-    // Check hash on initial load
-    handleHashChange();
-
-    // Listen for hash changes
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [parser]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -38,8 +20,6 @@ const ODataMetadataViewer: React.FC = () => {
           // Reset active entity type and filter when new file is loaded
           setActiveEntityType(null);
           setFilterText('');
-          // Clear hash when new file is loaded
-          window.location.hash = '';
         } catch (error) {
           setError(error instanceof Error ? error.message : 'Unknown error occurred');
           setParser(null);
@@ -55,6 +35,23 @@ const ODataMetadataViewer: React.FC = () => {
 
   const setEntityTypeRef = (entityTypeName: string, element: HTMLDivElement | null) => {
     entityTypeRefs.current[entityTypeName] = element;
+  };
+
+  // Function to scroll to an entity type
+  const scrollToEntityType = (entityTypeId: string) => {
+    setActiveEntityType(entityTypeId);
+
+    const element = document.getElementById(entityTypeId);
+    if (element) {
+      const sidebarWidth = 256; // 16rem = 256px
+      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - 20; // Add some padding at the top
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
   };
 
   // Filter entity types based on the filter text
@@ -152,12 +149,12 @@ const ODataMetadataViewer: React.FC = () => {
               {entityType.NavigationProperty.map((nav: any) => (
                 <li key={nav.Name} className="py-1 border-b border-gray-200">
                   {nav.Name}: {isTypeInSchema(nav.Type) ? (
-                    <a
-                      href={`#${getEntityTypeId(nav.Type)}`}
-                      className="font-mono text-[0.9em] text-blue-600 hover:text-blue-800 hover:underline"
+                    <button
+                      onClick={() => scrollToEntityType(getEntityTypeId(nav.Type))}
+                      className="font-mono text-[0.9em] text-blue-600 hover:text-blue-800 hover:underline bg-transparent border-0 p-0 cursor-pointer"
                     >
                       {nav.Type}
-                    </a>
+                    </button>
                   ) : (
                     <span className="font-mono text-[0.9em]">{nav.Type}</span>
                   )}
@@ -174,12 +171,12 @@ const ODataMetadataViewer: React.FC = () => {
   const renderEntitySet = (entitySet: any) => (
     <li key={entitySet.Name} className="py-2 border-b border-gray-200">
       {entitySet.Name} ({isTypeInSchema(entitySet.EntityType) ? (
-        <a
-          href={`#${getEntityTypeId(entitySet.EntityType)}`}
-          className="font-mono text-[0.9em] text-blue-600 hover:text-blue-800 hover:underline"
+        <button
+          onClick={() => scrollToEntityType(getEntityTypeId(entitySet.EntityType))}
+          className="font-mono text-[0.9em] text-blue-600 hover:text-blue-800 hover:underline bg-transparent border-0 p-0 cursor-pointer"
         >
           {entitySet.EntityType}
-        </a>
+        </button>
       ) : (
         <span className="font-mono text-[0.9em]">{entitySet.EntityType}</span>
       )})
@@ -214,13 +211,13 @@ const ODataMetadataViewer: React.FC = () => {
                 const entityTypeId = entityType.Namespace ? `${entityType.Namespace}.${entityType.Name}` : entityType.Name;
                 return (
                   <li key={entityType.Name}>
-                    <a
-                      href={`#${entityTypeId}`}
+                    <button
+                      onClick={() => scrollToEntityType(entityTypeId)}
                       className={`w-full text-left px-2 py-1 rounded hover:bg-blue-50 block ${activeEntityType === entityTypeId ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-700'
                         }`}
                     >
                       {entityType.Name}
-                    </a>
+                    </button>
                   </li>
                 );
               })}
