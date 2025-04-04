@@ -126,7 +126,7 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
       {/* Sidebar */}
       <div ref={sidebarRef} className="w-64 bg-gray-100 border-r border-gray-200 flex flex-col h-screen">
         {/* Fixed header section */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-3 border-b border-gray-200">
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-lg font-semibold">Entity types</h2>
 
@@ -173,12 +173,12 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
           <input
             type="text"
             placeholder="Search..."
-            className="w-full p-2 border border-gray-300 rounded mb-2"
+            className="w-full p-2 border border-gray-300 rounded mb-1"
             value={searchTerm}
             onChange={handleSearchChange}
           />
           {showSettings && (
-            <div className="mb-2">
+            <div className="mb-1">
               <input
                 type="text"
                 placeholder="Filter entity types (regex)"
@@ -194,7 +194,7 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
         </div>
 
         {/* Scrollable content section */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-3">
           <div className="mb-4">
             <ul className="space-y-1">
               {filteredEntityTypesWithSearch.map(entityType => (
