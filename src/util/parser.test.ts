@@ -65,14 +65,12 @@ describe('ODataMetadataParser', () => {
         });
 
         test('should extract entity types', () => {
-            const entityTypes = parser.getEntityTypes();
-
-            expect(entityTypes).toHaveLength(2);
-            expect(entityTypes[0].Name).toBe('Product');
-            expect(entityTypes[1].Name).toBe('Category');
+            expect(parser.entityTypes).toHaveLength(2);
+            expect(parser.entityTypes[0].Name).toBe('Product');
+            expect(parser.entityTypes[1].Name).toBe('Category');
 
             // Check Product entity type properties
-            const productType = entityTypes[0];
+            const productType = parser.entityTypes[0];
             expect(productType.Property).toHaveLength(7);
             expect(productType.Property?.[0].Name).toBe('ID');
             expect(productType.Property?.[0].Type).toBe('Edm.Int32');
@@ -84,20 +82,17 @@ describe('ODataMetadataParser', () => {
         });
 
         test('should extract entity sets', () => {
-            const entitySets = parser.getEntitySets();
 
-            expect(entitySets).toHaveLength(2);
-            expect(entitySets[0].Name).toBe('Products');
-            expect(entitySets[0].EntityType).toBe('odd.Product');
-            expect(entitySets[1].Name).toBe('Categories');
-            expect(entitySets[1].EntityType).toBe('odd.Category');
+            expect(parser.entitySets).toHaveLength(2);
+            expect(parser.entitySets[0].Name).toBe('Products');
+            expect(parser.entitySets[0].EntityType).toBe('odd.Product');
+            expect(parser.entitySets[1].Name).toBe('Categories');
+            expect(parser.entitySets[1].EntityType).toBe('odd.Category');
         });
 
         test('should capture namespace for entity types', () => {
-            const entityTypes = parser.getEntityTypes()
-
             // Check that each entity type has the correct namespace
-            entityTypes.forEach(entityType => {
+            parser.entityTypes.forEach(entityType => {
                 expect(entityType.Namespace).toBe('A.B.C.ODataDemo');
             });
         });
@@ -111,11 +106,9 @@ describe('ODataMetadataParser', () => {
         });
 
         test('should handle multiple schemas with different namespaces', () => {
-            const entityTypes = parser.getEntityTypes();
-
             // Check that entity types have the correct namespaces
-            const photoType = entityTypes.find(et => et.Name === 'Photo');
-            const productType = entityTypes.find(et => et.Name === 'Product');
+            const photoType = parser.entityTypes.find(et => et.Name === 'Photo');
+            const productType = parser.entityTypes.find(et => et.Name === 'Product');
 
             expect(photoType).toBeDefined();
             expect(photoType?.Namespace).toBe('Microsoft.OData.SampleService.Models.TripPin');

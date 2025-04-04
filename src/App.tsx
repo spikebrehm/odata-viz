@@ -1,3 +1,4 @@
+import ODataMetadataUploader from './components/ODataMetadataUploader';
 import ODataMetadataViewer from './components/ODataMetadataViewer';
 
 function App() {
@@ -9,7 +10,9 @@ function App() {
         </div>
       </header>
       <main>
-        <ODataMetadataViewer />
+        <ODataMetadataUploader>{(parser) =>
+          <ODataMetadataViewer parser={parser} />
+        }</ODataMetadataUploader>
       </main>
     </div>
   );

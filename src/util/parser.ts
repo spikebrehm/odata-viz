@@ -15,19 +15,21 @@ export interface ODataEntityType {
   }>;
 }
 
+export interface ODataEntitySet {
+  Name: string;
+  EntityType: string;
+  NavigationPropertyBinding?: Array<{
+    Path: string;
+    Target: string;
+  }>;
+}
+
 export interface ODataSchema {
   Namespace?: string;
   Alias?: string;
   EntityType?: Array<ODataEntityType>;
   EntityContainer?: {
-    EntitySet?: Array<{
-      Name: string;
-      EntityType: string;
-      NavigationPropertyBinding?: Array<{
-        Path: string;
-        Target: string;
-      }>;
-    }>;
+    EntitySet?: Array<ODataEntitySet>;
     FunctionImport?: Array<{
       Name: string;
       Function: string;
@@ -45,8 +47,10 @@ export interface ODataMetadata {
 
 export class ODataMetadataParser {
   private parser: XMLParser;
-  metadata: ODataMetadata;
   private namespaceAliases: Map<string, string> = new Map();
+  private _entityTypes: ODataEntityType[] = [];
+  private _entitySets: ODataEntitySet[] = [];
+  metadata!: ODataMetadata;
 
   constructor(xmlString: string) {
     this.parser = new XMLParser({
@@ -70,7 +74,7 @@ export class ODataMetadataParser {
         return false;
       },
     });
-    this.metadata = this.parseMetadata(xmlString);
+    this.parseMetadata(xmlString);
   }
 
   /**
@@ -79,7 +83,7 @@ export class ODataMetadataParser {
    * @returns Parsed OData metadata object
    * @throws Error if XML is invalid or doesn't match OData metadata structure
    */
-  parseMetadata(xmlString: string): ODataMetadata {
+  parseMetadata(xmlString: string) {
     if (!xmlString || typeof xmlString !== 'string') {
       throw new Error('Invalid input: XML string is required');
     }
@@ -117,14 +121,24 @@ export class ODataMetadataParser {
       }
     });
 
-    return parsed as ODataMetadata;
+    this.metadata = parsed as ODataMetadata;
+    this._entityTypes = this.getEntityTypes();
+    this._entitySets = this.getEntitySets();
+  }
+
+  get entityTypes() {
+    return this._entityTypes;
+  }
+
+  get entitySets() {
+    return this._entitySets;
   }
 
   /**
    * Extract entity types from parsed metadata
    * @returns Array of entity types with their properties
    */
-  getEntityTypes() {
+  private getEntityTypes() {
     const dataServices = this.metadata['edmx:Edmx']['edmx:DataServices'];
     const schemas = Array.isArray(dataServices.Schema) ? dataServices.Schema : [dataServices.Schema];
 
@@ -143,7 +157,7 @@ export class ODataMetadataParser {
    * Extract entity sets from parsed metadata
    * @returns Array of entity sets
    */
-  getEntitySets() {
+  private getEntitySets() {
     const dataServices = this.metadata['edmx:Edmx']['edmx:DataServices'];
     const schemas = Array.isArray(dataServices.Schema) ? dataServices.Schema : [dataServices.Schema];
 
@@ -163,16 +177,15 @@ export class ODataMetadataParser {
    */
   expandTypeReference(typeReference: string): string {
     // Handle collection types
-    if (typeReference.startsWith('Collection(') && typeReference.endsWith(')')) {
-      const innerType = typeReference.substring(11, typeReference.length - 1);
+    if (isCollection(typeReference)) {
+      const innerType = stripCollection(typeReference);
       return `Collection(${this.expandTypeReference(innerType)})`;
     }
 
     // Check if it's using an alias
     const parts = typeReference.split('.');
     if (parts.length === 2) {
-      const alias = parts[0];
-      const typeName = parts[1];
+      const [alias, typeName] = parts;
 
       // If the alias is in our map, replace it with the full namespace
       if (this.namespaceAliases.has(alias)) {
@@ -182,4 +195,24 @@ export class ODataMetadataParser {
 
     return typeReference;
   }
+}
+
+/**
+ * Utility functions
+ */
+export function getFullEntityTypeName(entityType: ODataEntityType) {
+  return `${entityType.Namespace}.${entityType.Name}`;
+}
+
+export function entityTypeExists(entityTypes: ODataEntityType[], entityTypeName: string) {
+  const lookup = stripCollection(entityTypeName)
+  return entityTypes.some(entityType => entityType.Name === lookup || `${entityType.Namespace}.${entityType.Name}` === lookup);
+}
+
+export function isCollection(entityTypeName: string) {
+  return entityTypeName.startsWith('Collection(') && entityTypeName.endsWith(')');
+}
+
+export function stripCollection(entityTypeName: string) {
+  return isCollection(entityTypeName) ? entityTypeName.slice(11, -1) : entityTypeName;
 }

@@ -66,7 +66,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
 const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ parser, onClose, entityTypeFilter = '' }) => {
     // Get entity types filtered by the filter if provided
     const entityTypes = useMemo(() => {
-        const types = parser.getEntityTypes();
+        const types = parser.entityTypes;
         if (!entityTypeFilter) return types;
 
         try {
