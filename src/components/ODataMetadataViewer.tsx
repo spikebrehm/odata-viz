@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getFullEntityTypeName, isCollection, ODataEntityType, ODataMetadataParser, stripCollection } from '../util/parser';
 import EntityRelationshipDiagram from './EntityRelationshipDiagram';
 import {
@@ -9,7 +10,8 @@ import {
 } from "./ui/tooltip";
 
 const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser }) => {
-  const [selectedEntityType, setSelectedEntityType] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { selectedEntityType } = useParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [showDiagram, setShowDiagram] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -91,12 +93,13 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
   // Handle entity type selection
   const handleEntityTypeClick = (entityType: ODataEntityType | string) => {
     const fullEntityTypeName = typeof entityType === 'string' ? entityType : getFullEntityTypeName(entityType);
-    setSelectedEntityType(parser.expandTypeReference(fullEntityTypeName));
+    const expandedType = parser.expandTypeReference(fullEntityTypeName);
+    navigate(`/entity/${expandedType}`);
   };
 
   // Handle entity set selection
   const handleEntitySetClick = (entitySetName: string) => {
-    setSelectedEntityType(entitySetName);
+    navigate(`/entity/${entitySetName}`);
   };
 
   // Handle search input change
@@ -222,12 +225,11 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
               {filteredEntityTypesWithSearch.map(entityType => (
                 <li key={entityType.Name}>
                   <button
-                    className={`w-full text-left p-2 rounded ${selectedEntityType === entityType.Name
+                    className={`w-full text-left p-2 rounded ${selectedEntityType === parser.expandTypeReference(getFullEntityTypeName(entityType))
                       ? 'bg-blue-100 text-blue-800'
                       : 'hover:bg-gray-200'
                       }`}
-                    onClick={() => handleEntityTypeClick(entityType)
-                    }
+                    onClick={() => handleEntityTypeClick(entityType)}
                   >
                     {entityType.Name}
                   </button>
@@ -259,14 +261,14 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
 
       {/* Main content */}
       <div ref={contentRef} className="flex-1 overflow-y-auto p-4">
-        {selectedEntityTypeDetails ? (
-          <div data-entity-type={selectedEntityTypeDetails.Name}>
-            <h2 className="text-2xl font-bold mb-4">{selectedEntityTypeDetails.Name}</h2>
+        {selectedEntityType ? (
+          <div data-entity-type={selectedEntityType}>
+            <h2 className="text-2xl font-bold mb-4">{selectedEntityTypeDetails?.Name}</h2>
             <div className="mb-4">
               <h3 className="text-lg font-semibold mb-2">Namespace</h3>
-              <p>{selectedEntityTypeDetails.Namespace || 'No namespace'}</p>
+              <p>{selectedEntityTypeDetails?.Namespace || 'No namespace'}</p>
             </div>
-            {selectedEntityTypeDetails.Property && (
+            {selectedEntityTypeDetails?.Property && (
               <div className="mb-4">
                 <h3 className="text-lg font-semibold mb-2">Properties</h3>
                 <table className="min-w-full bg-white border border-gray-200">
@@ -289,7 +291,7 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
                 </table>
               </div>
             )}
-            {selectedEntityTypeDetails.NavigationProperty && (
+            {selectedEntityTypeDetails?.NavigationProperty && (
               <div className="mb-4">
                 <h3 className="text-lg font-semibold mb-2">Navigation properties</h3>
                 <table className="min-w-full bg-white border border-gray-200">
@@ -373,6 +375,5 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
     </div>
   );
 };
-
 
 export default ODataMetadataViewer; 
