@@ -50,6 +50,7 @@ export class ODataMetadataParser {
   private namespaceAliases: Map<string, string> = new Map();
   private _entityTypes: ODataEntityType[] = [];
   private _entitySets: ODataEntitySet[] = [];
+  private _entityTypeSet: Set<string> = new Set();
   metadata!: ODataMetadata;
 
   constructor(xmlString: string) {
@@ -124,6 +125,7 @@ export class ODataMetadataParser {
     this.metadata = parsed as ODataMetadata;
     this._entityTypes = this.getEntityTypes();
     this._entitySets = this.getEntitySets();
+    this._entityTypeSet = new Set(this._entityTypes.map(entityType => getFullEntityTypeName(entityType)));
   }
 
   get entityTypes() {
@@ -195,6 +197,11 @@ export class ODataMetadataParser {
 
     return typeReference;
   }
+
+  entityTypeExists(entityTypeName: string) {
+    const lookup = stripCollection(entityTypeName);
+    return this._entityTypeSet.has(lookup)
+  }
 }
 
 /**
@@ -202,11 +209,6 @@ export class ODataMetadataParser {
  */
 export function getFullEntityTypeName(entityType: ODataEntityType) {
   return `${entityType.Namespace}.${entityType.Name}`;
-}
-
-export function entityTypeExists(entityTypes: ODataEntityType[], entityTypeName: string) {
-  const lookup = stripCollection(entityTypeName)
-  return entityTypes.some(entityType => entityType.Name === lookup || `${entityType.Namespace}.${entityType.Name}` === lookup);
 }
 
 export function isCollection(entityTypeName: string) {

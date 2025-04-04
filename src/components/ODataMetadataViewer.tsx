@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { entityTypeExists, getFullEntityTypeName, isCollection, ODataEntityType, ODataMetadataParser, stripCollection } from '../util/parser';
+import { getFullEntityTypeName, isCollection, ODataEntityType, ODataMetadataParser, stripCollection } from '../util/parser';
 import EntityRelationshipDiagram from './EntityRelationshipDiagram';
 
 const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser }) => {
@@ -276,7 +276,7 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
                       <tr key={navProp.Name}>
                         <td className="py-2 px-4 border-b">{navProp.Name}</td>
                         <td className="py-2 px-4 border-b">{
-                          entityTypeExists(parser.entityTypes, navProp.Type) ?
+                          parser.entityTypeExists(navProp.Type) ?
                             <>
                               {isCollection(navProp.Type) && 'Collection('}
                               <button
