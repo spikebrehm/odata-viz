@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { ODataMetadataParser } from '../util/parser';
+import { ODataEntityType, ODataMetadataParser } from '../util/parser';
 import EntityRelationshipDiagram from './EntityRelationshipDiagram';
 
 const ODataMetadataViewer: React.FC = () => {
@@ -125,8 +125,9 @@ const ODataMetadataViewer: React.FC = () => {
   }, [filteredEntitySets, searchTerm]);
 
   // Handle entity type selection
-  const handleEntityTypeClick = (entityTypeName: string) => {
-    setSelectedEntityType(entityTypeName);
+  const handleEntityTypeClick = (entityType: ODataEntityType | string) => {
+    const fullEntityTypeName = typeof entityType === 'string' ? entityType : getFullEntityTypeName(entityType);
+    setSelectedEntityType(fullEntityTypeName);
   };
 
   // Handle entity set selection
@@ -152,7 +153,7 @@ const ODataMetadataViewer: React.FC = () => {
   // Get the selected entity type details
   const selectedEntityTypeDetails = useMemo(() => {
     if (!selectedEntityType) return null;
-    return filteredEntityTypes.find(entityType => entityType.Name === selectedEntityType);
+    return filteredEntityTypes.find(entityType => getFullEntityTypeName(entityType) === selectedEntityType);
   }, [filteredEntityTypes, selectedEntityType]);
 
   // Get the selected entity set details
@@ -266,7 +267,8 @@ const ODataMetadataViewer: React.FC = () => {
                         ? 'bg-blue-100 text-blue-800'
                         : 'hover:bg-gray-200'
                         }`}
-                      onClick={() => handleEntityTypeClick(entityType.Name)}
+                      onClick={() => handleEntityTypeClick(entityType)
+                      }
                     >
                       {entityType.Name}
                     </button>
@@ -342,7 +344,16 @@ const ODataMetadataViewer: React.FC = () => {
                         {selectedEntityTypeDetails.NavigationProperty.map((navProp) => (
                           <tr key={navProp.Name}>
                             <td className="py-2 px-4 border-b">{navProp.Name}</td>
-                            <td className="py-2 px-4 border-b">{navProp.Type}</td>
+                            <td className="py-2 px-4 border-b">{
+                              entityTypeExists(entityTypes, navProp.Type) ?
+                                <button
+                                  className="text-blue-800 hover:underline"
+                                  onClick={() => handleEntityTypeClick(stripCollection(navProp.Type))}
+                                >
+                                  {navProp.Type}
+                                </button>
+                                : navProp.Type
+                            }</td>
                             <td className="py-2 px-4 border-b">{navProp.Partner || '-'}</td>
                           </tr>
                         ))}
@@ -400,5 +411,18 @@ const ODataMetadataViewer: React.FC = () => {
     </div>
   );
 };
+
+function getFullEntityTypeName(entityType: ODataEntityType) {
+  return `${entityType.Namespace}.${entityType.Name}`;
+}
+
+function entityTypeExists(entityTypes: ODataEntityType[], entityTypeName: string) {
+  const lookup = stripCollection(entityTypeName)
+  return entityTypes.some(entityType => entityType.Name === lookup || `${entityType.Namespace}.${entityType.Name}` === lookup);
+}
+
+function stripCollection(entityTypeName: string) {
+  return entityTypeName.startsWith('Collection(') ? entityTypeName.slice(11, -1) : entityTypeName;
+}
 
 export default ODataMetadataViewer; 

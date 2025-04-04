@@ -1,6 +1,6 @@
 import { XMLParser } from 'fast-xml-parser';
 
-interface ODataEntityType {
+export interface ODataEntityType {
   Name: string;
   Namespace?: string;
   Property?: Array<{
@@ -15,7 +15,7 @@ interface ODataEntityType {
   }>;
 }
 
-interface ODataSchema {
+export interface ODataSchema {
   Namespace?: string;
   Alias?: string;
   EntityType?: Array<ODataEntityType>;
