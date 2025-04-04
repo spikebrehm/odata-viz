@@ -50,7 +50,7 @@ export class ODataMetadataParser {
   private namespaceAliases: Map<string, string> = new Map();
   private _entityTypes: ODataEntityType[] = [];
   private _entitySets: ODataEntitySet[] = [];
-  private _entityTypeSet: Set<string> = new Set();
+  private _entityTypeMap: Map<string, ODataEntityType> = new Map();
   metadata!: ODataMetadata;
 
   constructor(xmlString: string) {
@@ -125,7 +125,8 @@ export class ODataMetadataParser {
     this.metadata = parsed as ODataMetadata;
     this._entityTypes = this.getEntityTypes();
     this._entitySets = this.getEntitySets();
-    this._entityTypeSet = new Set(this._entityTypes.map(entityType => getFullEntityTypeName(entityType)));
+    this._entityTypeMap = new Map(this._entityTypes.map(entityType => [
+      this.expandTypeReference(getFullEntityTypeName(entityType)), entityType]));
   }
 
   get entityTypes() {
@@ -198,9 +199,14 @@ export class ODataMetadataParser {
     return typeReference;
   }
 
+  getEntityType(entityTypeName: string) {
+    const lookup = stripCollection(this.expandTypeReference(entityTypeName));
+    return this._entityTypeMap.get(lookup);
+  }
+
   entityTypeExists(entityTypeName: string) {
-    const lookup = stripCollection(entityTypeName);
-    return this._entityTypeSet.has(lookup)
+    const lookup = stripCollection(this.expandTypeReference(entityTypeName));
+    return this._entityTypeMap.has(lookup);
   }
 }
 

@@ -85,7 +85,7 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
   // Handle entity type selection
   const handleEntityTypeClick = (entityType: ODataEntityType | string) => {
     const fullEntityTypeName = typeof entityType === 'string' ? entityType : getFullEntityTypeName(entityType);
-    setSelectedEntityType(fullEntityTypeName);
+    setSelectedEntityType(parser.expandTypeReference(fullEntityTypeName));
   };
 
   // Handle entity set selection
@@ -111,7 +111,7 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
   // Get the selected entity type details
   const selectedEntityTypeDetails = useMemo(() => {
     if (!selectedEntityType) return null;
-    return filteredEntityTypes.find(entityType => getFullEntityTypeName(entityType) === selectedEntityType);
+    return filteredEntityTypes.find(entityType => parser.expandTypeReference(getFullEntityTypeName(entityType)) === selectedEntityType);
   }, [filteredEntityTypes, selectedEntityType]);
 
   // Get the selected entity set details
