@@ -346,12 +346,16 @@ const ODataMetadataViewer: React.FC = () => {
                             <td className="py-2 px-4 border-b">{navProp.Name}</td>
                             <td className="py-2 px-4 border-b">{
                               entityTypeExists(entityTypes, navProp.Type) ?
-                                <button
-                                  className="text-blue-800 hover:underline"
-                                  onClick={() => handleEntityTypeClick(stripCollection(navProp.Type))}
-                                >
-                                  {navProp.Type}
-                                </button>
+                                <>
+                                  {isCollection(navProp.Type) && 'Collection('}
+                                  <button
+                                    className="text-blue-800 hover:underline"
+                                    onClick={() => handleEntityTypeClick(stripCollection(navProp.Type))}
+                                  >
+                                    {stripCollection(navProp.Type)}
+                                  </button>
+                                  {isCollection(navProp.Type) && ')'}
+                                </>
                                 : navProp.Type
                             }</td>
                             <td className="py-2 px-4 border-b">{navProp.Partner || '-'}</td>
@@ -421,8 +425,12 @@ function entityTypeExists(entityTypes: ODataEntityType[], entityTypeName: string
   return entityTypes.some(entityType => entityType.Name === lookup || `${entityType.Namespace}.${entityType.Name}` === lookup);
 }
 
+function isCollection(entityTypeName: string) {
+  return entityTypeName.startsWith('Collection(')
+}
+
 function stripCollection(entityTypeName: string) {
-  return entityTypeName.startsWith('Collection(') ? entityTypeName.slice(11, -1) : entityTypeName;
+  return isCollection(entityTypeName) ? entityTypeName.slice(11, -1) : entityTypeName;
 }
 
 export default ODataMetadataViewer; 
