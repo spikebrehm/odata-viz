@@ -1,3 +1,3 @@
 rm -rf docs
-cp dist docs
+cp -R dist docs
 git add .
