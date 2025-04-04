@@ -1,6 +1,12 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { getFullEntityTypeName, isCollection, ODataEntityType, ODataMetadataParser, stripCollection } from '../util/parser';
 import EntityRelationshipDiagram from './EntityRelationshipDiagram';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser }) => {
   const [selectedEntityType, setSelectedEntityType] = useState<string | null>(null);
@@ -130,45 +136,61 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-lg font-semibold">Entity types</h2>
 
-            <button
-              className="text-gray-500 hover:text-gray-700"
-              onClick={handleToggleDiagram}
-              title="View Entity Relationship Diagram"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                {/* Entity 1 */}
-                <rect x="2" y="4" width="8" height="6" rx="1" />
-                <line x1="6" y1="7" x2="6" y2="7" strokeWidth="2" />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="text-gray-500 hover:text-gray-700"
+                    onClick={handleToggleDiagram}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      {/* Entity 1 */}
+                      <rect x="2" y="4" width="8" height="6" rx="1" />
+                      <line x1="6" y1="7" x2="6" y2="7" strokeWidth="2" />
 
-                {/* Entity 2 */}
-                <rect x="14" y="4" width="8" height="6" rx="1" />
-                <line x1="18" y1="7" x2="18" y2="7" strokeWidth="2" />
+                      {/* Entity 2 */}
+                      <rect x="14" y="4" width="8" height="6" rx="1" />
+                      <line x1="18" y1="7" x2="18" y2="7" strokeWidth="2" />
 
-                {/* Entity 3 */}
-                <rect x="8" y="14" width="8" height="6" rx="1" />
-                <line x1="12" y1="17" x2="12" y2="17" strokeWidth="2" />
+                      {/* Entity 3 */}
+                      <rect x="8" y="14" width="8" height="6" rx="1" />
+                      <line x1="12" y1="17" x2="12" y2="17" strokeWidth="2" />
 
-                {/* Relationship lines */}
-                <line x1="10" y1="7" x2="14" y2="7" />
-                <line x1="6" y1="10" x2="12" y2="14" />
-                <line x1="18" y1="10" x2="12" y2="14" />
+                      {/* Relationship lines */}
+                      <line x1="10" y1="7" x2="14" y2="7" />
+                      <line x1="6" y1="10" x2="12" y2="14" />
+                      <line x1="18" y1="10" x2="12" y2="14" />
 
-                {/* Relationship diamonds */}
-                <path d="M10 7 L12 6 L14 7 L12 8 Z" />
-                <path d="M6 10 L8 9 L12 14 L10 15 Z" />
-                <path d="M18 10 L16 9 L12 14 L14 15 Z" />
-              </svg>
-            </button>
+                      {/* Relationship diamonds */}
+                      <path d="M10 7 L12 6 L14 7 L12 8 Z" />
+                      <path d="M6 10 L8 9 L12 14 L10 15 Z" />
+                      <path d="M18 10 L16 9 L12 14 L14 15 Z" />
+                    </svg>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>View Entity Relationship Diagram</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-            <button
-              onClick={handleToggleSettings}
-              className="text-gray-500 hover:text-gray-700"
-              title="Settings"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-              </svg>
-            </button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleToggleSettings}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Settings</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <input
             type="text"
