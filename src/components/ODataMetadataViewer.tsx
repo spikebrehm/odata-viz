@@ -124,10 +124,11 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
     <div className="flex h-screen overflow-hidden">
 
       {/* Sidebar */}
-      <div ref={sidebarRef} className="w-64 bg-gray-100 p-4 overflow-y-auto border-r border-gray-200">
-        <div className="mb-4">
+      <div ref={sidebarRef} className="w-64 bg-gray-100 border-r border-gray-200 flex flex-col h-screen">
+        {/* Fixed header section */}
+        <div className="p-4 border-b border-gray-200">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="text-lg font-semibold">Entity Types</h2>
+            <h2 className="text-lg font-semibold">Entity types</h2>
 
             <button
               className="text-gray-500 hover:text-gray-700"
@@ -190,41 +191,47 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
               )}
             </div>
           )}
-          <ul className="space-y-1">
-            {filteredEntityTypesWithSearch.map(entityType => (
-              <li key={entityType.Name}>
-                <button
-                  className={`w-full text-left p-2 rounded ${selectedEntityType === entityType.Name
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'hover:bg-gray-200'
-                    }`}
-                  onClick={() => handleEntityTypeClick(entityType)
-                  }
-                >
-                  {entityType.Name}
-                </button>
-              </li>
-            ))}
-          </ul>
         </div>
 
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold mb-2">Entity Sets</h2>
-          <ul className="space-y-1">
-            {filteredEntitySetsWithSearch.map(entitySet => (
-              <li key={entitySet.Name}>
-                <button
-                  className={`w-full text-left p-2 rounded ${selectedEntityType === entitySet.Name
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'hover:bg-gray-200'
-                    }`}
-                  onClick={() => handleEntitySetClick(entitySet.Name)}
-                >
-                  {entitySet.Name}
-                </button>
-              </li>
-            ))}
-          </ul>
+        {/* Scrollable content section */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="mb-4">
+            <ul className="space-y-1">
+              {filteredEntityTypesWithSearch.map(entityType => (
+                <li key={entityType.Name}>
+                  <button
+                    className={`w-full text-left p-2 rounded ${selectedEntityType === entityType.Name
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'hover:bg-gray-200'
+                      }`}
+                    onClick={() => handleEntityTypeClick(entityType)
+                    }
+                  >
+                    {entityType.Name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold mb-2">Entity sets</h2>
+            <ul className="space-y-1">
+              {filteredEntitySetsWithSearch.map(entitySet => (
+                <li key={entitySet.Name}>
+                  <button
+                    className={`w-full text-left p-2 rounded ${selectedEntityType === entitySet.Name
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'hover:bg-gray-200'
+                      }`}
+                    onClick={() => handleEntitySetClick(entitySet.Name)}
+                  >
+                    {entitySet.Name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -262,7 +269,7 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
             )}
             {selectedEntityTypeDetails.NavigationProperty && (
               <div className="mb-4">
-                <h3 className="text-lg font-semibold mb-2">Navigation Properties</h3>
+                <h3 className="text-lg font-semibold mb-2">Navigation properties</h3>
                 <table className="min-w-full bg-white border border-gray-200">
                   <thead>
                     <tr>
@@ -301,12 +308,12 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
           <div data-entity-type={selectedEntitySetDetails.Name}>
             <h2 className="text-2xl font-bold mb-4">{selectedEntitySetDetails.Name}</h2>
             <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">Entity Type</h3>
+              <h3 className="text-lg font-semibold mb-2">Entity type</h3>
               <p>{selectedEntitySetDetails.EntityType}</p>
             </div>
             {selectedEntitySetDetails.NavigationPropertyBinding && (
               <div className="mb-4">
-                <h3 className="text-lg font-semibold mb-2">Navigation Property Bindings</h3>
+                <h3 className="text-lg font-semibold mb-2">Navigation property bindings</h3>
                 <table className="min-w-full bg-white border border-gray-200">
                   <thead>
                     <tr>
