@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import ReactFlow, {
     Node,
     Edge,
@@ -11,7 +11,7 @@ import ReactFlow, {
 } from 'reactflow';
 import dagre from 'dagre';
 import 'reactflow/dist/style.css';
-import { getBaseName, getFullEntityTypeName, ODataMetadataParser, stripCollection } from '../util/parser';
+import { getBaseName, getFullEntityTypeName, ODataMetadataParser } from '../util/parser';
 import { Link } from 'react-router';
 
 interface EntityRelationshipDiagramProps {
