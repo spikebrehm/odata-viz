@@ -204,6 +204,28 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
           />
           {showSettings && (
             <div className="mb-1">
+              <label htmlFor="entityTypeFilter" className="text-sm font-medium mb-1">
+                Filter entity types (regex)
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button className="ml-1 text-gray-500 hover:text-gray-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M12 16v-4" />
+                          <path d="M12 8h.01" />
+                        </svg>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Filter out certain entity types completely. Can e.g.
+                        improve performance of Entity Relation Diagram for very
+                        large schemas.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+              </label>
               <input
                 type="text"
                 placeholder="Filter entity types (regex)"
