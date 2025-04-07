@@ -1,7 +1,8 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getFullEntityTypeName, isCollection, ODataEntityType, ODataMetadataParser, stripCollection } from '../util/parser';
-import EntityRelationshipDiagram from './EntityRelationshipDiagram';
+// import EntityRelationshipDiagram from './EntityRelationshipDiagram';
+import EntityRelationshipDiagram from './EntityRelationshipDiagram2';
 import {
   Tooltip,
   TooltipContent,
