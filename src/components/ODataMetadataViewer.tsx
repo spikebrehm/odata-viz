@@ -13,7 +13,7 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
   const { selectedEntityType } = useParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [erdDiagramState, setErdDiagramState] = useState<
-    { open: true, oneHopFrom?: string } | null>(null);
+    { open: true, oneHop?: true } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [entityTypeFilter, setEntityTypeFilter] = useState('');
   const [filterError, setFilterError] = useState<string | null>(null);
@@ -274,7 +274,7 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
                   <TooltipTrigger asChild>
                     <button
                       className="text-gray-500 hover:text-gray-700"
-                      onClick={() => setErdDiagramState({ open: true, oneHopFrom: selectedEntityType })}
+                      onClick={() => setErdDiagramState({ open: true, oneHop: true })}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                         {/* Entity 1 */}
@@ -411,10 +411,12 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
       {/* Entity Relationship Diagram Modal */}
       {erdDiagramState && (
         <EntityRelationshipDiagram
+          // Hack to force the diagram to re-mount on page navigation
+          key={selectedEntityType}
           parser={parser}
           onClose={() => setErdDiagramState(null)}
           entityTypeFilter={entityTypeFilter}
-          oneHopFrom={erdDiagramState.oneHopFrom}
+          oneHopFrom={erdDiagramState.oneHop ? selectedEntityType : undefined}
         />
       )}
     </div>
