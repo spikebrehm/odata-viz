@@ -11,7 +11,8 @@ import ReactFlow, {
 } from 'reactflow';
 import dagre from 'dagre';
 import 'reactflow/dist/style.css';
-import { ODataMetadataParser } from '../util/parser';
+import { getFullEntityTypeName, ODataMetadataParser, stripCollection } from '../util/parser';
+import { getFips } from 'crypto';
 
 interface EntityRelationshipDiagramProps {
     parser: ODataMetadataParser;
@@ -23,7 +24,7 @@ interface EntityRelationshipDiagramProps {
 const dagreGraph = new dagre.graphlib.Graph();
 dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-const nodeWidth = 250;
+const nodeWidth = 350;
 const nodeHeight = 80;
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
@@ -111,29 +112,20 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
         // Create edges for navigation properties
         entityTypes.forEach(entityType => {
             if (entityType.NavigationProperty) {
-                entityType.NavigationProperty.forEach((navProp: any) => {
-                    let targetType = navProp.Type;
-
-                    // Handle collection types
-                    if (targetType.startsWith('Collection(') && targetType.endsWith(')')) {
-                        targetType = targetType.substring(11, targetType.length - 1);
-                    }
-
+                entityType.NavigationProperty.forEach((navProp) => {
                     // Expand the type reference to handle aliases
-                    const expandedType = parser.expandTypeReference(targetType);
+                    const expandedType = parser.expandTypeReference(navProp.Type);
 
                     // Find the target node
                     const targetNode = nodes.find(node => node.id === expandedType);
-                    const sourceId = entityType.Namespace
-                        ? `${entityType.Namespace}.${entityType.Name}`
-                        : entityType.Name;
+                    const sourceId = getFullEntityTypeName(entityType);
 
                     if (targetNode) {
                         edges.push({
                             id: `${sourceId}-${targetNode.id}-${navProp.Name}`,
                             source: sourceId,
                             target: targetNode.id,
-                            label: navProp.Name,
+                            label: `${entityType.Name} ⇔ ${navProp.Name}`,
                             type: 'smoothstep',
                             animated: true,
                             style: { stroke: '#6c757d' },

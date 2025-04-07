@@ -214,6 +214,7 @@ export class ODataMetadataParser {
  * Utility functions
  */
 export function getFullEntityTypeName(entityType: ODataEntityType) {
+  if (!entityType.Namespace) return entityType.Name;
   return `${entityType.Namespace}.${entityType.Name}`;
 }
 
