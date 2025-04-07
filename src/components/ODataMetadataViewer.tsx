@@ -136,8 +136,8 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
       <div ref={sidebarRef} className="w-64 bg-gray-100 border-r border-gray-200 flex flex-col h-screen">
         {/* Fixed header section */}
         <div className="p-3 border-b border-gray-200">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-lg font-semibold">Entity types</h2>
+          <div className="flex justify-between items-center mb-2 gap-1">
+            <h2 className="text-lg font-semibold mr-auto">Entity types</h2>
 
             <TooltipProvider>
               <Tooltip>
