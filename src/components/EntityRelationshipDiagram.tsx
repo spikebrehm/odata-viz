@@ -12,6 +12,7 @@ import ReactFlow, {
 import dagre from 'dagre';
 import 'reactflow/dist/style.css';
 import { getBaseName, getFullEntityTypeName, ODataMetadataParser, stripCollection } from '../util/parser';
+import { Link } from 'react-router';
 
 interface EntityRelationshipDiagramProps {
     parser: ODataMetadataParser;
@@ -108,8 +109,9 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
                 position: { x: 0, y: 0 }, // Initial position will be calculated by dagre
                 data: {
                     label: entityType.Name,
-                    namespace: entityType.Namespace || 'No namespace'
-                },
+                    namespace: entityType.Namespace || 'No namespace',
+                    type: getFullEntityTypeName(entityType)
+                } satisfies NodeData,
                 style: {
                     background: '#f8f9fa',
                     border: '1px solid #dee2e6',
@@ -137,7 +139,7 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
                             id: `${sourceId}-${targetNode.id}-${navProp.Name}`,
                             source: sourceId,
                             target: targetNode.id,
-                            label: `${entityType.Name} ⇔ ${navProp.Name}`,
+                            label: navProp.Partner,
                             type: 'smoothstep',
                             animated: true,
                             style: { stroke: '#6c757d' },
@@ -157,22 +159,10 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
     const [nodes, _setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, _setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
-    // Custom node component
-    const EntityNode = useCallback(({ data }: { data: { label: string; namespace: string } }) => {
-        return (
-            <div className="p-3 rounded-lg shadow-sm border border-gray-200 bg-white">
-                <Handle type="target" position={Position.Left} id="left" />
-                <div className="font-semibold text-blue-600">{data.label}</div>
-                <div className="text-xs text-gray-500 mt-1 font-mono">{data.namespace}</div>
-                <Handle type="source" position={Position.Right} id="right" />
-            </div>
-        );
-    }, []);
-
     // Node types
     const nodeTypes = useMemo(() => ({
         entityNode: EntityNode,
-    }), [EntityNode]);
+    }), []);
 
     return (
         <div className="fixed inset-0 bg-white z-50 flex flex-col">
@@ -206,4 +196,26 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
     );
 };
 
-export default EntityRelationshipDiagram; 
+export default EntityRelationshipDiagram;
+
+// Custom node component
+function EntityNode({ data }: { data: NodeData }) {
+    return (
+        <div className="p-3 rounded-lg shadow-sm border border-gray-200 bg-white">
+            <Handle type="target" position={Position.Left} id="left" />
+            <div className="font-semibold text-blue-600">
+                <Link to={`/entity/${data.type}`}>
+                    {data.label}
+                </Link>
+            </div>
+            <div className="text-xs text-gray-500 mt-1 font-mono">{data.namespace}</div>
+            <Handle type="source" position={Position.Right} id="right" />
+        </div>
+    );
+}
+
+interface NodeData {
+    label: string;
+    namespace: string;
+    type: string
+}

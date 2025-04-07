@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { getFullEntityTypeName, isCollection, ODataEntityType, ODataMetadataParser, stripCollection } from '../util/parser';
+import { Link, useParams } from 'react-router-dom';
+import { getFullEntityTypeName, isCollection, ODataMetadataParser, stripCollection } from '../util/parser';
 import EntityRelationshipDiagram from './EntityRelationshipDiagram';
 import {
   Tooltip,
@@ -10,7 +10,6 @@ import {
 } from "./ui/tooltip";
 
 const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser }) => {
-  const navigate = useNavigate();
   const { selectedEntityType } = useParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [erdDiagramState, setErdDiagramState] = useState<
@@ -90,18 +89,6 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
       (entitySet.EntityType && entitySet.EntityType.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [filteredEntitySets, searchTerm]);
-
-  // Handle entity type selection
-  const handleEntityTypeClick = (entityType: ODataEntityType | string) => {
-    const fullEntityTypeName = typeof entityType === 'string' ? entityType : getFullEntityTypeName(entityType);
-    const expandedType = parser.expandTypeReference(fullEntityTypeName);
-    navigate(`/entity/${expandedType}`);
-  };
-
-  // Handle entity set selection
-  const handleEntitySetClick = (entitySetName: string) => {
-    navigate(`/entity/${entitySetName}`);
-  };
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -242,15 +229,15 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
             <ul className="space-y-1">
               {filteredEntityTypesWithSearch.map(entityType => (
                 <li key={entityType.Name}>
-                  <button
-                    className={`w-full text-left p-2 rounded ${selectedEntityType === parser.expandTypeReference(getFullEntityTypeName(entityType))
+                  <Link
+                    className={`w-full flex text-left p-2 rounded ${selectedEntityType === parser.expandTypeReference(getFullEntityTypeName(entityType))
                       ? 'bg-blue-100 text-blue-800'
                       : 'hover:bg-gray-200'
                       }`}
-                    onClick={() => handleEntityTypeClick(entityType)}
+                    to={`/entity/${parser.expandTypeReference(getFullEntityTypeName(entityType))}`}
                   >
                     {entityType.Name}
-                  </button>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -261,15 +248,15 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
             <ul className="space-y-1">
               {filteredEntitySetsWithSearch.map(entitySet => (
                 <li key={entitySet.Name}>
-                  <button
+                  <Link
                     className={`w-full text-left p-2 rounded ${selectedEntityType === entitySet.Name
                       ? 'bg-blue-100 text-blue-800'
                       : 'hover:bg-gray-200'
                       }`}
-                    onClick={() => handleEntitySetClick(entitySet.Name)}
+                    to={`/entity/${entitySet.Name}`}
                   >
                     {entitySet.Name}
-                  </button>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -367,12 +354,12 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
                           parser.entityTypeExists(navProp.Type) ?
                             <>
                               {isCollection(navProp.Type) && 'Collection('}
-                              <button
+                              <Link
                                 className="text-blue-800 hover:underline"
-                                onClick={() => handleEntityTypeClick(stripCollection(navProp.Type))}
+                                to={`/entity/${stripCollection(parser.expandTypeReference(navProp.Type))}`}
                               >
                                 {stripCollection(navProp.Type)}
-                              </button>
+                              </Link>
                               {isCollection(navProp.Type) && ')'}
                             </>
                             : navProp.Type
