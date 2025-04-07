@@ -82,7 +82,7 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
     }, [parser, entityTypeFilter]);
 
     const { initialNodes, initialEdges } = useMemo(() => {
-        const nodes: Node[] = [];
+        const nodes = new Map<string, Node>();
         const edges: Edge[] = [];
 
         // Create nodes for each entity type
@@ -91,7 +91,7 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
                 ? `${entityType.Namespace}.${entityType.Name}`
                 : entityType.Name;
 
-            nodes.push({
+            nodes.set(nodeId, {
                 id: nodeId,
                 position: { x: 0, y: 0 }, // Initial position will be calculated by dagre
                 data: {
@@ -117,7 +117,7 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
                     const expandedType = parser.expandTypeReference(navProp.Type);
 
                     // Find the target node
-                    const targetNode = nodes.find(node => node.id === expandedType);
+                    const targetNode = nodes.get(expandedType);
                     const sourceId = getFullEntityTypeName(entityType);
 
                     if (targetNode) {
@@ -137,7 +137,7 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
         });
 
         // Apply the layout
-        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges, 'LR');
+        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(Array.from(nodes.values()), edges, 'LR');
         return { initialNodes: layoutedNodes, initialEdges: layoutedEdges };
     }, [parser, entityTypes]);
 
