@@ -11,13 +11,13 @@ import ReactFlow, {
 } from 'reactflow';
 import dagre from 'dagre';
 import 'reactflow/dist/style.css';
-import { getFullEntityTypeName, ODataMetadataParser, stripCollection } from '../util/parser';
-import { getFips } from 'crypto';
+import { getBaseName, getFullEntityTypeName, ODataMetadataParser, stripCollection } from '../util/parser';
 
 interface EntityRelationshipDiagramProps {
     parser: ODataMetadataParser;
     onClose: () => void;
     entityTypeFilter?: string;
+    oneHopFrom?: string;
 }
 
 // Dagre graph configuration
@@ -64,9 +64,11 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
     return { nodes: layoutedNodes, edges };
 };
 
-const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ parser, onClose, entityTypeFilter = '' }) => {
+const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ parser, onClose, entityTypeFilter = '',
+    oneHopFrom
+}) => {
     // Get entity types filtered by the filter if provided
-    const entityTypes = useMemo(() => {
+    let entityTypes = useMemo(() => {
         const types = parser.entityTypes;
         if (!entityTypeFilter) return types;
 
@@ -81,15 +83,25 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
         }
     }, [parser, entityTypeFilter]);
 
+    // Filter for one-hop case
+    if (oneHopFrom) {
+        entityTypes = entityTypes.filter(entityType => {
+            const type = parser.expandTypeReference(getFullEntityTypeName(entityType));
+            if (type === oneHopFrom) return true;
+            for (const navProp of entityType.NavigationProperty || []) {
+                if (parser.expandTypeReference(navProp.Type) === oneHopFrom) return true;
+            }
+            return false;
+        });
+    }
+
     const { initialNodes, initialEdges } = useMemo(() => {
         const nodes = new Map<string, Node>();
         const edges: Edge[] = [];
 
         // Create nodes for each entity type
         entityTypes.forEach((entityType) => {
-            const nodeId = entityType.Namespace
-                ? `${entityType.Namespace}.${entityType.Name}`
-                : entityType.Name;
+            const nodeId = getFullEntityTypeName(entityType);
 
             nodes.set(nodeId, {
                 id: nodeId,
@@ -165,7 +177,9 @@ const EntityRelationshipDiagram: React.FC<EntityRelationshipDiagramProps> = ({ p
     return (
         <div className="fixed inset-0 bg-white z-50 flex flex-col">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm">
-                <h2 className="text-xl font-semibold">Entity Relationship Diagram</h2>
+                <h2 className="text-xl font-semibold">Entity Relationship Diagram
+                    {oneHopFrom && <>: one hop from <span className="font-mono">{getBaseName(oneHopFrom)}</span></>}
+                </h2>
                 <button
                     onClick={onClose}
                     className="text-gray-500 hover:text-gray-700"

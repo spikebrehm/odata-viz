@@ -13,7 +13,8 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
   const navigate = useNavigate();
   const { selectedEntityType } = useParams();
   const [searchTerm, setSearchTerm] = useState('');
-  const [showDiagram, setShowDiagram] = useState(false);
+  const [erdDiagramState, setErdDiagramState] = useState<
+    { open: true, oneHopFrom?: string } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [entityTypeFilter, setEntityTypeFilter] = useState('');
   const [filterError, setFilterError] = useState<string | null>(null);
@@ -107,11 +108,6 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
     setSearchTerm(e.target.value);
   };
 
-  // Handle diagram toggle
-  const handleToggleDiagram = () => {
-    setShowDiagram(!showDiagram);
-  };
-
   // Handle settings toggle
   const handleToggleSettings = () => {
     setShowSettings(!showSettings);
@@ -144,7 +140,7 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
                 <TooltipTrigger asChild>
                   <button
                     className="text-gray-500 hover:text-gray-700"
-                    onClick={handleToggleDiagram}
+                    onClick={() => setErdDiagramState({ open: true })}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       {/* Entity 1 */}
@@ -285,7 +281,46 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
       <div ref={contentRef} className="flex-1 overflow-y-auto p-4">
         {selectedEntityType ? (
           <div data-entity-type={selectedEntityType}>
-            <h2 className="text-2xl font-bold mb-4">{selectedEntityTypeDetails?.Name}</h2>
+            <h2 className="text-2xl font-bold mb-4 gap-2 flex">{selectedEntityTypeDetails?.Name}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      className="text-gray-500 hover:text-gray-700"
+                      onClick={() => setErdDiagramState({ open: true, oneHopFrom: selectedEntityType })}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        {/* Entity 1 */}
+                        <rect x="2" y="4" width="8" height="6" rx="1" />
+                        <line x1="6" y1="7" x2="6" y2="7" strokeWidth="2" />
+
+                        {/* Entity 2 */}
+                        <rect x="14" y="4" width="8" height="6" rx="1" />
+                        <line x1="18" y1="7" x2="18" y2="7" strokeWidth="2" />
+
+                        {/* Entity 3 */}
+                        <rect x="8" y="14" width="8" height="6" rx="1" />
+                        <line x1="12" y1="17" x2="12" y2="17" strokeWidth="2" />
+
+                        {/* Relationship lines */}
+                        <line x1="10" y1="7" x2="14" y2="7" />
+                        <line x1="6" y1="10" x2="12" y2="14" />
+                        <line x1="18" y1="10" x2="12" y2="14" />
+
+                        {/* Relationship diamonds */}
+                        <path d="M10 7 L12 6 L14 7 L12 8 Z" />
+                        <path d="M6 10 L8 9 L12 14 L10 15 Z" />
+                        <path d="M18 10 L16 9 L12 14 L14 15 Z" />
+                      </svg>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>View Entity Relationship Diagram</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+            </h2>
             <div className="mb-4">
               <h3 className="text-lg font-semibold mb-2">Namespace</h3>
               <p>{selectedEntityTypeDetails?.Namespace || 'No namespace'}</p>
@@ -387,11 +422,12 @@ const ODataMetadataViewer: React.FC<{ parser: ODataMetadataParser }> = ({ parser
       </div>
 
       {/* Entity Relationship Diagram Modal */}
-      {showDiagram && (
+      {erdDiagramState && (
         <EntityRelationshipDiagram
           parser={parser}
-          onClose={handleToggleDiagram}
+          onClose={() => setErdDiagramState(null)}
           entityTypeFilter={entityTypeFilter}
+          oneHopFrom={erdDiagramState.oneHopFrom}
         />
       )}
     </div>

@@ -218,6 +218,10 @@ export function getFullEntityTypeName(entityType: ODataEntityType) {
   return `${entityType.Namespace}.${entityType.Name}`;
 }
 
+export function getBaseName(entityTypeName: string) {
+  return entityTypeName.split('.').pop() || entityTypeName;
+}
+
 export function isCollection(entityTypeName: string) {
   return entityTypeName.startsWith('Collection(') && entityTypeName.endsWith(')');
 }
