@@ -1,4 +1,5 @@
 import { XMLParser } from 'fast-xml-parser';
+import sortBy from 'lodash/sortby';
 
 export interface ODataEntityType {
   Name: string;
@@ -146,14 +147,22 @@ export class ODataMetadataParser {
     const schemas = Array.isArray(dataServices.Schema) ? dataServices.Schema : [dataServices.Schema];
 
     // Flatten all entity types from all schemas
-    return schemas.reduce((entityTypes: ODataEntityType[], schema) => {
+    return sortBy(schemas.reduce((entityTypes: ODataEntityType[], schema) => {
       if (schema.EntityType) {
         // Ensure EntityType is an array
         const schemaEntityTypes = Array.isArray(schema.EntityType) ? schema.EntityType : [schema.EntityType];
+        for (const entityType of schemaEntityTypes) {
+          if (entityType.Property) {
+            entityType.Property = sortBy(entityType.Property, (obj) => obj.Name.startsWith('_') ? `zzz${obj.Name}` : obj.Name);
+          }
+          if (entityType.NavigationProperty) {
+            entityType.NavigationProperty = sortBy(entityType.NavigationProperty, 'Name');
+          }
+        }
         return [...entityTypes, ...schemaEntityTypes];
       }
       return entityTypes;
-    }, []);
+    }, []), 'Name');
   }
 
   /**
@@ -170,7 +179,7 @@ export class ODataMetadataParser {
       return [];
     }
 
-    return containerSchema.EntityContainer.EntitySet || [];
+    return sortBy(containerSchema.EntityContainer.EntitySet || [], 'Name');
   }
 
   /**
